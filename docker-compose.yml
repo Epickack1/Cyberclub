@@ -1,0 +1,22 @@
+# Альтернатива локальному PostgreSQL для участников команды без установленной СУБД:
+#   docker compose up -d
+# При первом старте контейнер сам выполнит db/01_schema.sql и db/02_seed.sql.
+# Подключение приложения: jdbc:postgresql://localhost:5432/cyberclub, пользователь postgres,
+# пароль postgres (задать через переменную окружения CYBERCLUB_DB_PASSWORD=postgres).
+services:
+  db:
+    image: postgres:16
+    container_name: cyberclub-db
+    environment:
+      POSTGRES_DB: cyberclub
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./db/02_seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+      - cyberclub-data:/var/lib/postgresql/data
+
+volumes:
+  cyberclub-data:

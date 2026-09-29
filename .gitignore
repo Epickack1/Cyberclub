@@ -10,8 +10,8 @@ target/
 .classpath
 .project
 
-# Результаты экспорта (кроме образца в docs/export)
-export/
+# Результаты экспорта в корне проекта (сам Java-пакет src/.../export/ и образец docs/export/ — в git)
+/export/
 
 # OS
 Thumbs.db

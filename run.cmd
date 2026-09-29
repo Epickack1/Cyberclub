@@ -12,6 +12,13 @@ cd /d "%~dp0"
 set "JAVA_EXE=java"
 if defined JAVA_HOME if exist "%JAVA_HOME%\bin\java.exe" set "JAVA_EXE=%JAVA_HOME%\bin\java.exe"
 
+rem --- нужен JDK 21+: иначе jar не запустится (UnsupportedClassVersionError) ---
+"%JAVA_EXE%" -version 2>&1 | findstr /r /c:"version ""2[1-9]" >nul
+if errorlevel 1 (
+    echo ОШИБКА: нужен JDK 21 или новее. Проверьте: java -version и переменную JAVA_HOME.
+    exit /b 1
+)
+
 if not exist "target\cyberclub.jar" (
     echo Сборка проекта, первый запуск может занять несколько минут...
     call mvnw.cmd -q -DskipTests package

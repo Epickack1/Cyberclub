@@ -1,0 +1,268 @@
+/* =====================================================================
+   CyberClub — оформление JavaFX-приложения (КР2).
+   Цвета вынесены в переменные на .root, остальные правила ссылаются на них.
+   ===================================================================== */
+
+.root {
+    -cc-bg: #f2f4f9;
+    -cc-surface: #ffffff;
+    -cc-border: #dfe3ee;
+    -cc-text: #1b2233;
+    -cc-muted: #667089;
+    -cc-dark: #0d1120;
+    -cc-dark-2: #171b33;
+    -cc-accent: #6d4aff;
+    -cc-accent-dark: #5634e6;
+    -cc-accent-soft: #efeaff;
+    -cc-cyan: #0ea5b7;
+    -cc-danger: #d32f45;
+    -cc-danger-soft: #fdecee;
+
+    -fx-font-family: "Segoe UI", "Inter", Arial, sans-serif;
+    -fx-font-size: 13px;
+    -fx-background-color: -cc-bg;
+    -fx-text-fill: -cc-text;
+    -fx-accent: -cc-accent;
+    -fx-focus-color: -cc-accent;
+    -fx-faint-focus-color: transparent;
+}
+
+/* ------------------------------------------------------------ шапка и меню */
+
+.menu-bar {
+    -fx-background-color: -cc-dark;
+    -fx-padding: 2 8;
+}
+.menu-bar > .container > .menu-button > .label { -fx-text-fill: #c9cfe3; }
+.menu-bar > .container > .menu-button:hover,
+.menu-bar > .container > .menu-button:showing { -fx-background-color: #232a48; }
+
+.header {
+    -fx-background-color: linear-gradient(to right, -cc-dark, -cc-dark-2 60%, #251a55);
+    -fx-padding: 12 20 14 20;
+}
+.brand-mark {
+    -fx-background-color: linear-gradient(to bottom right, -cc-accent, -cc-cyan);
+    -fx-background-radius: 10;
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-padding: 8 10;
+}
+.header-title { -fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold; }
+.header-subtitle { -fx-text-fill: #9aa3c2; }
+
+/* ----------------------------------------------------------------- вкладки */
+
+.main-tabs > .tab-header-area {
+    -fx-padding: 0 12;
+}
+.main-tabs > .tab-header-area > .tab-header-background {
+    -fx-background-color: -cc-dark-2;
+}
+.main-tabs > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: transparent;
+    -fx-background-radius: 8 8 0 0;
+    -fx-padding: 8 18;
+}
+.main-tabs > .tab-header-area > .headers-region > .tab .tab-label {
+    -fx-text-fill: #aeb5d0;
+    -fx-font-weight: bold;
+}
+.main-tabs > .tab-header-area > .headers-region > .tab:hover { -fx-background-color: #232a48; }
+.main-tabs > .tab-header-area > .headers-region > .tab:selected { -fx-background-color: -cc-bg; }
+.main-tabs > .tab-header-area > .headers-region > .tab:selected .tab-label { -fx-text-fill: -cc-text; }
+.main-tabs > .tab-header-area > .headers-region > .tab:selected .focus-indicator { -fx-border-color: transparent; }
+
+.tab-content { -fx-padding: 14 16 8 16; -fx-background-color: -cc-bg; }
+.tab-footer { -fx-padding: 8 2 0 2; }
+.tab-footer .label { -fx-text-fill: -cc-muted; }
+
+/* ------------------------------------------------------------------ кнопки */
+
+.button, .toggle-button {
+    -fx-background-color: -cc-surface;
+    -fx-border-color: -cc-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 7 14;
+    -fx-text-fill: -cc-text;
+    -fx-cursor: hand;
+}
+.button:hover, .toggle-button:hover { -fx-background-color: #f4f2ff; -fx-border-color: #c9bfff; }
+.button:pressed, .toggle-button:selected { -fx-background-color: -cc-accent-soft; -fx-border-color: -cc-accent; }
+.button:disabled { -fx-opacity: 0.45; }
+.button:default { -fx-border-color: -cc-accent; }
+
+.primary-button {
+    -fx-background-color: -cc-accent;
+    -fx-border-color: -cc-accent;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+.primary-button:hover { -fx-background-color: -cc-accent-dark; -fx-border-color: -cc-accent-dark; }
+
+.accent-button { -fx-background-color: -cc-cyan; -fx-border-color: -cc-cyan; -fx-text-fill: white; -fx-font-weight: bold; }
+.accent-button:hover { -fx-background-color: #0b8c9c; -fx-border-color: #0b8c9c; }
+
+.danger-button { -fx-text-fill: -cc-danger; -fx-border-color: #f2b8c0; }
+.danger-button:hover { -fx-background-color: -cc-danger-soft; -fx-border-color: -cc-danger; }
+
+.link-button { -fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: -cc-accent; -fx-underline: true; }
+.link-button:hover { -fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: -cc-accent-dark; }
+
+/* ------------------------------------------------ панели действий и фильтров */
+
+.action-bar { -fx-padding: 0 0 2 0; }
+
+.filter-bar {
+    -fx-background-color: -cc-surface;
+    -fx-background-radius: 12;
+    -fx-border-color: -cc-border;
+    -fx-border-radius: 12;
+    -fx-padding: 10 14 12 14;
+}
+.filter-group { -fx-spacing: 4; }
+.filter-label { -fx-text-fill: -cc-muted; -fx-font-size: 11.5px; -fx-font-weight: bold; }
+
+/* ------------------------------------------------------------- поля ввода */
+
+.text-field, .text-area, .combo-box, .date-picker, .choice-box {
+    -fx-background-color: -cc-surface;
+    -fx-background-radius: 8;
+    -fx-border-color: -cc-border;
+    -fx-border-radius: 8;
+}
+.text-area .content { -fx-background-color: -cc-surface; -fx-background-radius: 8; }
+.date-picker > .text-field { -fx-border-color: transparent; -fx-background-color: transparent; }
+.text-field:focused, .text-area:focused, .combo-box:focused, .date-picker:focused { -fx-border-color: -cc-accent; }
+
+/* Ошибка ввода: класс field-error ставит FormController, псевдокласс :error — фильтр периода */
+.field-error, .field-error:focused, .date-picker:error {
+    -fx-border-color: -cc-danger;
+    -fx-border-width: 1.5;
+    -fx-background-color: #fff6f7;
+}
+
+/* ------------------------------------------------------------------ таблицы */
+
+.table-view {
+    -fx-background-color: -cc-surface;
+    -fx-border-color: -cc-border;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 2;
+}
+.table-view .column-header-background { -fx-background-color: #f6f7fc; -fx-background-radius: 10 10 0 0; }
+.table-view .column-header, .table-view .filler {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent -cc-border transparent;
+    -fx-size: 34;
+}
+.table-view .column-header .label { -fx-text-fill: #4a5472; -fx-font-weight: bold; }
+.table-view .column-header .arrow { -fx-background-color: -cc-accent; }
+.table-row-cell { -fx-cell-size: 32; -fx-background-color: -cc-surface; -fx-border-color: transparent transparent #eef0f6 transparent; }
+.table-row-cell:odd { -fx-background-color: #fbfbfe; }
+.table-row-cell:hover { -fx-background-color: #f5f2ff; }
+.table-row-cell:selected { -fx-background-color: #e6dfff; }
+.table-row-cell:selected .table-cell { -fx-text-fill: -cc-text; }
+.table-row-cell:cancelled .table-cell { -fx-text-fill: #9aa1b5; }
+.table-row-cell:inactive .table-cell { -fx-text-fill: #a26b00; }
+.table-view .table-cell { -fx-padding: 0 8; -fx-alignment: CENTER_LEFT; }
+.table-view .table-cell.table-view .placeholder .label { -fx-text-fill: -cc-muted; }
+
+/* Плашки статусов бронирования (Cells.statusBadge) */
+.status-badge {
+    -fx-background-radius: 10;
+    -fx-padding: 2 10;
+    -fx-font-size: 11.5px;
+    -fx-font-weight: bold;
+}
+.status-created   { -fx-background-color: #eceff5; -fx-text-fill: #4b5570; }
+.status-confirmed { -fx-background-color: #e1ecff; -fx-text-fill: #1d4ed8; }
+.status-active    { -fx-background-color: #dcfce7; -fx-text-fill: #15803d; }
+.status-completed { -fx-background-color: #ede9fe; -fx-text-fill: #6d28d9; }
+.status-cancelled { -fx-background-color: #fde4e7; -fx-text-fill: #be1e36; }
+
+/* ------------------------------------------------------ карточка и связи */
+
+.content-split { -fx-background-color: transparent; -fx-padding: 10 0 0 0; }
+.content-split > .split-pane-divider { -fx-background-color: transparent; -fx-padding: 0 4; }
+.details-scroll, .details-scroll > .viewport { -fx-background-color: transparent; }
+.details-panel {
+    -fx-background-color: -cc-surface;
+    -fx-background-radius: 10;
+    -fx-border-color: -cc-border;
+    -fx-border-radius: 10;
+    -fx-padding: 14;
+}
+.details-section { -fx-text-fill: -cc-accent; -fx-font-weight: bold; -fx-font-size: 12px; }
+.details-key { -fx-text-fill: -cc-muted; }
+.details-value { -fx-text-fill: -cc-text; -fx-font-weight: 600; }
+.related-panel { -fx-padding: 10 0 0 0; }
+
+.section-title { -fx-font-size: 15px; -fx-font-weight: bold; }
+.page-title { -fx-font-size: 17px; -fx-font-weight: bold; }
+.muted { -fx-text-fill: -cc-muted; }
+.hint { -fx-text-fill: #7a8299; -fx-font-size: 11.5px; }
+.error-text { -fx-text-fill: -cc-danger; -fx-font-weight: bold; }
+
+/* --------------------------------------------------------------- формы */
+
+.dialog-pane { -fx-background-color: -cc-surface; }
+.dialog-pane > .header-panel {
+    -fx-background-color: linear-gradient(to right, -cc-dark, -cc-dark-2);
+    -fx-padding: 14 18;
+}
+.dialog-pane > .header-panel .label { -fx-text-fill: white; -fx-font-size: 15px; -fx-font-weight: bold; }
+.dialog-pane > .content { -fx-padding: 16 18 8 18; }
+.dialog-pane > .button-bar > .container { -fx-padding: 6 18 14 18; }
+.form-label { -fx-text-fill: #3d465f; -fx-font-weight: bold; -fx-padding: 6 0 0 0; }
+.price-label {
+    -fx-background-color: -cc-accent-soft;
+    -fx-background-radius: 8;
+    -fx-text-fill: -cc-accent-dark;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 8 12;
+}
+.counter-over { -fx-text-fill: -cc-danger; -fx-font-weight: bold; }
+.error-label {
+    -fx-background-color: -cc-danger-soft;
+    -fx-background-radius: 8;
+    -fx-border-color: #f6bcc4;
+    -fx-border-radius: 8;
+    -fx-text-fill: #a5162c;
+    -fx-padding: 8 12;
+    -fx-font-weight: bold;
+}
+
+/* ------------------------------------------------------------ статистика */
+
+.stats-scroll, .stats-scroll > .viewport { -fx-background-color: -cc-bg; }
+.metric-card {
+    -fx-background-color: -cc-surface;
+    -fx-background-radius: 12;
+    -fx-border-color: -cc-border;
+    -fx-border-radius: 12;
+    -fx-padding: 14 16;
+    -fx-pref-width: 230;
+    -fx-min-height: 86;
+}
+.metric-value { -fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: -cc-accent; }
+.metric-name { -fx-text-fill: -cc-muted; }
+.chart-card {
+    -fx-background-color: -cc-surface;
+    -fx-background-radius: 12;
+    -fx-border-color: -cc-border;
+    -fx-border-radius: 12;
+    -fx-padding: 14;
+    -fx-spacing: 6;
+}
+.chart-bar { -fx-bar-fill: -cc-accent; }
+
+/* ------------------------------------------------------- строка состояния */
+
+.status-bar { -fx-background-color: -cc-dark; -fx-padding: 6 16; }
+.status-bar .label { -fx-text-fill: #a3abc6; -fx-font-size: 12px; }
+.status-bar .status-dot { -fx-text-fill: #22c55e; }

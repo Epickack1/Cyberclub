@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+
+<!-- Вкладка «Игровые места». -->
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="ru.mirea.cyberclub.ui.controller.StationsController"
+            styleClass="tab-content">
+    <top>
+        <HBox styleClass="action-bar" spacing="8" alignment="CENTER_LEFT">
+            <Button text="＋ Новое место" styleClass="primary-button" onAction="#onAdd"/>
+            <Button fx:id="editButton" text="Изменить" onAction="#onEdit"/>
+            <Button fx:id="toggleButton" text="На обслуживание" onAction="#onToggleActive"/>
+            <Button fx:id="deleteButton" text="Удалить" styleClass="danger-button" onAction="#onDelete"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label text="Зона:" styleClass="filter-label"/>
+            <ComboBox fx:id="typeFilter" prefWidth="140"/>
+            <Button text="⟳ Обновить" onAction="#refresh"/>
+        </HBox>
+    </top>
+    <center>
+        <TableView fx:id="table">
+            <columns>
+                <TableColumn fx:id="nameCol" text="Название" prefWidth="110"/>
+                <TableColumn fx:id="typeCol" text="Зона" prefWidth="110"/>
+                <TableColumn fx:id="rateCol" text="Тариф, за час" prefWidth="130"/>
+                <TableColumn fx:id="stateCol" text="Состояние" prefWidth="140"/>
+                <TableColumn fx:id="specsCol" text="Конфигурация" prefWidth="380"/>
+            </columns>
+        </TableView>
+    </center>
+    <bottom>
+        <HBox styleClass="tab-footer" alignment="CENTER_LEFT">
+            <Label fx:id="countLabel"/>
+        </HBox>
+    </bottom>
+</BorderPane>

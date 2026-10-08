@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Вкладка «Клиенты»: список клиентов сверху, бронирования выбранного клиента снизу. -->
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="ru.mirea.cyberclub.ui.controller.ClientsController"
+            styleClass="tab-content">
+    <top>
+        <HBox styleClass="action-bar" spacing="8" alignment="CENTER_LEFT">
+            <Button text="＋ Новый клиент" styleClass="primary-button" onAction="#onAdd"/>
+            <Button fx:id="editButton" text="Изменить" onAction="#onEdit"/>
+            <Button fx:id="deleteButton" text="Удалить" styleClass="danger-button" onAction="#onDelete"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <TextField fx:id="searchField" prefWidth="300" promptText="Поиск: ник, ФИО, телефон, email"/>
+            <Button text="⟳ Обновить" onAction="#refresh"/>
+        </HBox>
+    </top>
+    <center>
+        <SplitPane orientation="VERTICAL" dividerPositions="0.6" styleClass="content-split">
+            <TableView fx:id="table">
+                <columns>
+                    <TableColumn fx:id="nicknameCol" text="Ник" prefWidth="120"/>
+                    <TableColumn fx:id="fullNameCol" text="ФИО" prefWidth="240"/>
+                    <TableColumn fx:id="phoneCol" text="Телефон" prefWidth="130"/>
+                    <TableColumn fx:id="emailCol" text="Email" prefWidth="190"/>
+                    <TableColumn fx:id="birthDateCol" text="Дата рождения" prefWidth="120"/>
+                    <TableColumn fx:id="ageCol" text="Возраст" prefWidth="80"/>
+                </columns>
+            </TableView>
+            <VBox spacing="8" styleClass="related-panel">
+                <HBox spacing="12" alignment="CENTER_LEFT">
+                    <Label fx:id="historyTitle" styleClass="section-title"/>
+                    <Label fx:id="historySummary" styleClass="muted"/>
+                </HBox>
+                <TableView fx:id="historyTable" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="hIdCol" text="№" prefWidth="60"/>
+                        <TableColumn fx:id="hStartCol" text="Начало" prefWidth="140"/>
+                        <TableColumn fx:id="hStationCol" text="Место" prefWidth="100"/>
+                        <TableColumn fx:id="hStatusCol" text="Статус" prefWidth="130"/>
+                        <TableColumn fx:id="hPriceCol" text="Стоимость" prefWidth="120"/>
+                    </columns>
+                </TableView>
+            </VBox>
+        </SplitPane>
+    </center>
+    <bottom>
+        <HBox styleClass="tab-footer" alignment="CENTER_LEFT">
+            <Label fx:id="countLabel"/>
+        </HBox>
+    </bottom>
+</BorderPane>

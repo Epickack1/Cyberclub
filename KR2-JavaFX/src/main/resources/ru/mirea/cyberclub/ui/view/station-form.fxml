@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DialogPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Форма игрового места. -->
+<DialogPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="ru.mirea.cyberclub.ui.controller.StationFormController"
+            prefWidth="540">
+    <content>
+        <VBox styleClass="form" spacing="12">
+            <GridPane hgap="12" vgap="10">
+                <columnConstraints>
+                    <ColumnConstraints minWidth="130"/>
+                    <ColumnConstraints hgrow="ALWAYS"/>
+                </columnConstraints>
+
+                <Label text="Название *" styleClass="form-label" GridPane.rowIndex="0"/>
+                <VBox spacing="3" GridPane.rowIndex="0" GridPane.columnIndex="1">
+                    <TextField fx:id="nameField" promptText="PC-05"/>
+                    <Label styleClass="hint" text="2–20 символов: латинские буквы, цифры, дефис. Уникально."/>
+                </VBox>
+
+                <Label text="Зона *" styleClass="form-label" GridPane.rowIndex="1"/>
+                <VBox spacing="3" GridPane.rowIndex="1" GridPane.columnIndex="1">
+                    <ComboBox fx:id="typeCombo" maxWidth="Infinity" promptText="Выберите зону"/>
+                    <Label styleClass="hint" text="VIP и буткемп доступны только клиентам 18+."/>
+                </VBox>
+
+                <Label text="Тариф, руб./ч *" styleClass="form-label" GridPane.rowIndex="2"/>
+                <TextField fx:id="rateField" promptText="150" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+
+                <Label text="Конфигурация" styleClass="form-label" GridPane.rowIndex="3"/>
+                <TextArea fx:id="specsArea" prefRowCount="3" wrapText="true" promptText="RTX 4060, Ryzen 5 7600, 165 Гц"
+                          GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+
+                <CheckBox fx:id="activeCheck" text="Место работает (снимите, если на обслуживании)"
+                          GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+            </GridPane>
+            <Label fx:id="errorLabel" styleClass="error-label" wrapText="true" maxWidth="Infinity"
+                   visible="false" managed="false"/>
+        </VBox>
+    </content>
+</DialogPane>

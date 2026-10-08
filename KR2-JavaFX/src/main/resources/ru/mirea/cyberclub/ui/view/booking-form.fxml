@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.DialogPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Форма бронирования: клиент и место выбираются из списков, стоимость считается автоматически. -->
+<DialogPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="ru.mirea.cyberclub.ui.controller.BookingFormController"
+            prefWidth="600">
+    <content>
+        <VBox styleClass="form" spacing="12">
+            <GridPane hgap="12" vgap="10">
+                <columnConstraints>
+                    <ColumnConstraints minWidth="130"/>
+                    <ColumnConstraints hgrow="ALWAYS"/>
+                </columnConstraints>
+
+                <Label text="Клиент *" styleClass="form-label" GridPane.rowIndex="0"/>
+                <VBox spacing="3" GridPane.rowIndex="0" GridPane.columnIndex="1">
+                    <ComboBox fx:id="clientCombo" maxWidth="Infinity" promptText="Выберите клиента"/>
+                    <Label fx:id="clientHint" styleClass="hint"/>
+                </VBox>
+
+                <Label text="Игровое место *" styleClass="form-label" GridPane.rowIndex="1"/>
+                <VBox spacing="3" GridPane.rowIndex="1" GridPane.columnIndex="1">
+                    <ComboBox fx:id="stationCombo" maxWidth="Infinity" promptText="Выберите место"/>
+                    <Label styleClass="hint" text="В списке только работающие места."/>
+                </VBox>
+
+                <Label text="Дата и начало *" styleClass="form-label" GridPane.rowIndex="2"/>
+                <HBox spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="2" GridPane.columnIndex="1">
+                    <DatePicker fx:id="datePicker" prefWidth="150"/>
+                    <TextField fx:id="startField" prefWidth="80" promptText="18:00"/>
+                    <Label styleClass="hint" text="ЧЧ:ММ"/>
+                </HBox>
+
+                <Label text="Длительность, ч *" styleClass="form-label" GridPane.rowIndex="3"/>
+                <HBox spacing="8" alignment="CENTER_LEFT" GridPane.rowIndex="3" GridPane.columnIndex="1">
+                    <TextField fx:id="durationField" prefWidth="80" promptText="2"/>
+                    <Label styleClass="hint" text="от 0,5 до 12 часов, например 1,5"/>
+                </HBox>
+
+                <Label text="Комментарий" styleClass="form-label" GridPane.rowIndex="4"/>
+                <VBox spacing="3" GridPane.rowIndex="4" GridPane.columnIndex="1">
+                    <TextArea fx:id="commentArea" prefRowCount="3" wrapText="true" promptText="Например: турнир по CS2"/>
+                    <Label fx:id="commentCounter" styleClass="hint"/>
+                </VBox>
+            </GridPane>
+
+            <Label fx:id="priceLabel" styleClass="price-label" maxWidth="Infinity"/>
+            <Label styleClass="hint" wrapText="true"
+                   text="Стоимость = тариф × часы (округление вверх до 30 минут). Место не должно быть занято другой бронью в это время."/>
+            <Label fx:id="errorLabel" styleClass="error-label" wrapText="true" maxWidth="Infinity"
+                   visible="false" managed="false"/>
+        </VBox>
+    </content>
+</DialogPane>

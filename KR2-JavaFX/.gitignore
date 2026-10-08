@@ -1,0 +1,19 @@
+# Maven
+target/
+.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# Файлы экспорта, если их сохранили в папку проекта
+*.xlsx
+*.csv
+
+# OS
+Thumbs.db
+.DS_Store

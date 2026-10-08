@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.chart.BarChart?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.chart.PieChart?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Вкладка «Статистика»: карточки показателей и две диаграммы. -->
+<ScrollPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="ru.mirea.cyberclub.ui.controller.StatisticsController"
+            fitToWidth="true" styleClass="stats-scroll">
+    <VBox styleClass="tab-content" spacing="14">
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <Label text="Показатели клуба" styleClass="page-title"/>
+            <Label text="по всей базе данных (SQL: COUNT, SUM, AVG, GROUP BY)" styleClass="muted"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label fx:id="updatedLabel" styleClass="muted"/>
+            <Button text="⟳ Пересчитать" onAction="#refresh"/>
+        </HBox>
+        <FlowPane fx:id="clubCards" hgap="12" vgap="12"/>
+
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <Label text="Текущая выборка" styleClass="page-title"/>
+            <Label text="строки таблицы «Бронирования» с учётом поиска и фильтров (Stream API)" styleClass="muted"/>
+        </HBox>
+        <FlowPane fx:id="selectionCards" hgap="12" vgap="12"/>
+
+        <HBox spacing="14">
+            <VBox styleClass="chart-card" HBox.hgrow="ALWAYS">
+                <Label text="Бронирования по статусам" styleClass="section-title"/>
+                <PieChart fx:id="statusChart" labelsVisible="true" legendVisible="false" prefHeight="320"/>
+            </VBox>
+            <VBox styleClass="chart-card" HBox.hgrow="ALWAYS">
+                <Label text="Сумма броней по зонам, руб." styleClass="section-title"/>
+                <BarChart fx:id="revenueChart" legendVisible="false" prefHeight="320" animated="false">
+                    <xAxis><CategoryAxis label="Зона"/></xAxis>
+                    <yAxis><NumberAxis label="руб."/></yAxis>
+                </BarChart>
+            </VBox>
+        </HBox>
+    </VBox>
+</ScrollPane>

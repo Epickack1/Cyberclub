@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.DialogPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Форма клиента. Корень — DialogPane: FormDialog вставляет его в модальное окно и добавляет кнопки. -->
+<DialogPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="ru.mirea.cyberclub.ui.controller.ClientFormController"
+            prefWidth="540">
+    <content>
+        <VBox styleClass="form" spacing="12">
+            <GridPane hgap="12" vgap="10">
+                <columnConstraints>
+                    <ColumnConstraints minWidth="130"/>
+                    <ColumnConstraints hgrow="ALWAYS"/>
+                </columnConstraints>
+
+                <Label text="Ник *" styleClass="form-label" GridPane.rowIndex="0"/>
+                <VBox spacing="3" GridPane.rowIndex="0" GridPane.columnIndex="1">
+                    <TextField fx:id="nicknameField" promptText="например Shadow"/>
+                    <Label styleClass="hint" text="3–20 символов: латиница, цифры, «_». Должен быть уникальным."/>
+                </VBox>
+
+                <Label text="ФИО *" styleClass="form-label" GridPane.rowIndex="1"/>
+                <TextField fx:id="fullNameField" promptText="Иванов Иван Иванович"
+                           GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                <Label text="Телефон *" styleClass="form-label" GridPane.rowIndex="2"/>
+                <VBox spacing="3" GridPane.rowIndex="2" GridPane.columnIndex="1">
+                    <TextField fx:id="phoneField" promptText="+79161234567"/>
+                    <Label styleClass="hint" text="Формат +7XXXXXXXXXX; пробелы, скобки и дефисы убираются автоматически."/>
+                </VBox>
+
+                <Label text="Email *" styleClass="form-label" GridPane.rowIndex="3"/>
+                <TextField fx:id="emailField" promptText="name@example.ru"
+                           GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+
+                <Label text="Дата рождения *" styleClass="form-label" GridPane.rowIndex="4"/>
+                <VBox spacing="3" GridPane.rowIndex="4" GridPane.columnIndex="1">
+                    <DatePicker fx:id="birthDatePicker" maxWidth="Infinity"/>
+                    <Label styleClass="hint" text="Клиенту должно быть не меньше 12 лет."/>
+                </VBox>
+            </GridPane>
+            <Label fx:id="errorLabel" styleClass="error-label" wrapText="true" maxWidth="Infinity"
+                   visible="false" managed="false"/>
+        </VBox>
+    </content>
+</DialogPane>

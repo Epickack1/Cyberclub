@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ToggleButton?>
+<?import javafx.scene.control.Tooltip?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Вкладка «Бронирования»: панель действий, блок поиска/фильтров/сортировки, таблица и карточка брони. -->
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="ru.mirea.cyberclub.ui.controller.BookingsController"
+            styleClass="tab-content">
+    <top>
+        <VBox spacing="10">
+            <!-- Действия с записями -->
+            <HBox styleClass="action-bar" spacing="8" alignment="CENTER_LEFT">
+                <Button text="＋ Новое бронирование" styleClass="primary-button" onAction="#onAdd"/>
+                <Button fx:id="editButton" text="Изменить" onAction="#onEdit"/>
+                <Button fx:id="statusButton" text="Сменить статус" onAction="#onChangeStatus"/>
+                <Button fx:id="deleteButton" text="Удалить" styleClass="danger-button" onAction="#onDelete"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button text="⟳ Обновить" onAction="#refresh">
+                    <tooltip><Tooltip text="Перечитать данные из базы (F5)"/></tooltip>
+                </Button>
+                <Button text="Экспорт…" onAction="#onExport">
+                    <tooltip><Tooltip text="Сохранить текущую выборку в .xlsx или .csv"/></tooltip>
+                </Button>
+                <Button text="Статистика →" styleClass="accent-button" onAction="#onShowStatistics"/>
+            </HBox>
+
+            <!-- Поиск, фильтрация, сортировка: FlowPane переносит группы при узком окне -->
+            <FlowPane styleClass="filter-bar" hgap="14" vgap="10">
+                <VBox styleClass="filter-group">
+                    <Label text="Поиск" styleClass="filter-label"/>
+                    <TextField fx:id="searchField" prefWidth="250" promptText="№ (#12), ник, ФИО, место, комментарий"/>
+                </VBox>
+                <VBox styleClass="filter-group">
+                    <Label text="Статус" styleClass="filter-label"/>
+                    <ComboBox fx:id="statusFilter" prefWidth="150"/>
+                </VBox>
+                <VBox styleClass="filter-group">
+                    <Label text="Зона" styleClass="filter-label"/>
+                    <ComboBox fx:id="typeFilter" prefWidth="130"/>
+                </VBox>
+                <VBox styleClass="filter-group">
+                    <Label text="Клиент" styleClass="filter-label"/>
+                    <ComboBox fx:id="clientFilter" prefWidth="230"/>
+                </VBox>
+                <VBox styleClass="filter-group">
+                    <Label text="Период (дата начала)" styleClass="filter-label"/>
+                    <HBox spacing="6" alignment="CENTER_LEFT">
+                        <DatePicker fx:id="fromPicker" prefWidth="125"/>
+                        <Label text="—"/>
+                        <DatePicker fx:id="toPicker" prefWidth="125"/>
+                    </HBox>
+                </VBox>
+                <VBox styleClass="filter-group">
+                    <Label text="Сортировка" styleClass="filter-label"/>
+                    <HBox spacing="6">
+                        <ComboBox fx:id="sortCombo" prefWidth="170" promptText="по столбцу"/>
+                        <ToggleButton fx:id="sortDirection" text="▲ по возрастанию" prefWidth="140"/>
+                    </HBox>
+                </VBox>
+                <VBox styleClass="filter-group" alignment="BOTTOM_LEFT">
+                    <Label text=" " styleClass="filter-label"/>
+                    <Button text="Сбросить фильтры" styleClass="link-button" onAction="#onResetFilters"/>
+                </VBox>
+            </FlowPane>
+        </VBox>
+    </top>
+
+    <center>
+        <SplitPane dividerPositions="0.745" styleClass="content-split">
+            <TableView fx:id="table">
+                <columns>
+                    <TableColumn fx:id="idCol" text="№" prefWidth="42" minWidth="42" maxWidth="60"/>
+                    <TableColumn fx:id="clientCol" text="Клиент" prefWidth="92" minWidth="84"/>
+                    <TableColumn fx:id="stationCol" text="Место" prefWidth="80" minWidth="78"/>
+                    <TableColumn fx:id="typeCol" text="Зона" prefWidth="82" minWidth="78"/>
+                    <TableColumn fx:id="startCol" text="Начало" prefWidth="122" minWidth="122"/>
+                    <TableColumn fx:id="endCol" text="Окончание" prefWidth="122" minWidth="122"/>
+                    <TableColumn fx:id="durationCol" text="Длит." prefWidth="88" minWidth="84"/>
+                    <TableColumn fx:id="statusCol" text="Статус" prefWidth="130" minWidth="128"/>
+                    <TableColumn fx:id="priceCol" text="Стоимость" prefWidth="108" minWidth="104"/>
+                    <TableColumn fx:id="commentCol" text="Комментарий" prefWidth="150" minWidth="90"/>
+                </columns>
+            </TableView>
+
+            <!-- Карточка выбранной брони: связанные данные клиента и игрового места -->
+            <ScrollPane fitToWidth="true" styleClass="details-scroll" minWidth="260">
+                <VBox styleClass="details-panel" spacing="10">
+                    <Label fx:id="detailsPlaceholder" styleClass="muted" wrapText="true"
+                           text="Выберите бронирование в таблице, чтобы увидеть подробности, клиента и игровое место."/>
+                    <VBox fx:id="detailsBox" spacing="10">
+                        <HBox spacing="10" alignment="CENTER_LEFT">
+                            <Label fx:id="detailsTitle" styleClass="section-title"/>
+                            <Label fx:id="detailsStatus" styleClass="status-badge"/>
+                        </HBox>
+                        <GridPane fx:id="bookingGrid" styleClass="details-grid" hgap="10" vgap="6">
+                            <columnConstraints>
+                                <ColumnConstraints minWidth="95"/>
+                                <ColumnConstraints hgrow="ALWAYS"/>
+                            </columnConstraints>
+                        </GridPane>
+                        <Separator/>
+                        <Label text="Клиент" styleClass="details-section"/>
+                        <GridPane fx:id="clientGrid" styleClass="details-grid" hgap="10" vgap="6">
+                            <columnConstraints>
+                                <ColumnConstraints minWidth="95"/>
+                                <ColumnConstraints hgrow="ALWAYS"/>
+                            </columnConstraints>
+                        </GridPane>
+                        <Separator/>
+                        <Label text="Игровое место" styleClass="details-section"/>
+                        <GridPane fx:id="stationGrid" styleClass="details-grid" hgap="10" vgap="6">
+                            <columnConstraints>
+                                <ColumnConstraints minWidth="95"/>
+                                <ColumnConstraints hgrow="ALWAYS"/>
+                            </columnConstraints>
+                        </GridPane>
+                        <Separator/>
+                        <Label fx:id="nextStatusLabel" styleClass="hint" wrapText="true"/>
+                    </VBox>
+                </VBox>
+            </ScrollPane>
+        </SplitPane>
+    </center>
+
+    <bottom>
+        <HBox styleClass="tab-footer" spacing="16" alignment="CENTER_LEFT">
+            <Label fx:id="countLabel"/>
+            <Label fx:id="filterMessage" styleClass="error-text"/>
+        </HBox>
+    </bottom>
+</BorderPane>

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.SeparatorMenuItem?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.input.KeyCodeCombination?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Главное окно. Контроллер указан в fx:controller; вкладки подключаются через fx:include. -->
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="ru.mirea.cyberclub.ui.controller.MainController"
+            styleClass="app-root">
+    <top>
+        <VBox>
+            <MenuBar>
+                <Menu text="Файл">
+                    <MenuItem text="Экспорт бронирований…" onAction="#onExport">
+                        <accelerator><KeyCodeCombination code="E" control="UP" meta="UP" alt="UP" shift="UP" shortcut="DOWN"/></accelerator>
+                    </MenuItem>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="Выход" onAction="#onExit"/>
+                </Menu>
+                <Menu text="Данные">
+                    <MenuItem text="Новое бронирование…" onAction="#onNewBooking">
+                        <accelerator><KeyCodeCombination code="N" control="UP" meta="UP" alt="UP" shift="UP" shortcut="DOWN"/></accelerator>
+                    </MenuItem>
+                    <MenuItem text="Обновить" onAction="#onRefresh">
+                        <accelerator><KeyCodeCombination code="F5" control="UP" meta="UP" alt="UP" shift="UP" shortcut="UP"/></accelerator>
+                    </MenuItem>
+                </Menu>
+                <Menu text="Справка">
+                    <MenuItem text="О программе" onAction="#onAbout"/>
+                </Menu>
+            </MenuBar>
+            <HBox styleClass="header" alignment="CENTER_LEFT" spacing="14">
+                <Label styleClass="brand-mark" text="CC"/>
+                <VBox spacing="2">
+                    <Label styleClass="header-title" text="CyberClub"/>
+                    <Label styleClass="header-subtitle" text="Учёт клиентов, игровых мест и бронирований"/>
+                </VBox>
+            </HBox>
+        </VBox>
+    </top>
+
+    <center>
+        <TabPane fx:id="tabs" tabClosingPolicy="UNAVAILABLE" styleClass="main-tabs">
+            <Tab fx:id="bookingsTab" text="Бронирования">
+                <fx:include fx:id="bookings" source="bookings-tab.fxml"/>
+            </Tab>
+            <Tab fx:id="clientsTab" text="Клиенты">
+                <fx:include fx:id="clients" source="clients-tab.fxml"/>
+            </Tab>
+            <Tab fx:id="stationsTab" text="Игровые места">
+                <fx:include fx:id="stations" source="stations-tab.fxml"/>
+            </Tab>
+            <Tab fx:id="statisticsTab" text="Статистика">
+                <fx:include fx:id="statistics" source="statistics-tab.fxml"/>
+            </Tab>
+        </TabPane>
+    </center>
+
+    <bottom>
+        <HBox styleClass="status-bar" alignment="CENTER_LEFT" spacing="10">
+            <Label styleClass="status-dot" text="●"/>
+            <Label fx:id="dbLabel"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label styleClass="muted" text="F5 — обновить · Ctrl+N — новая бронь · двойной щелчок — изменить"/>
+        </HBox>
+    </bottom>
+</BorderPane>

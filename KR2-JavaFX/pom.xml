@@ -7,8 +7,8 @@
     <!--
         КР2: настольное JavaFX-приложение "Киберспортивный клуб CyberClub".
         За основу взят pom.xml из задания КР2 (javafx-client из архива + PostgreSQL JDBC
-        + maven-resources-plugin). Jackson убран: приложение работает с БД КР1 напрямую
-        через JDBC, а не через REST. Добавлен Apache POI для экспорта в .xlsx.
+        + maven-resources-plugin). Добавлен Apache POI для экспорта в .xlsx, MCP SDK для
+        интеграции с ИИ и Jackson (транзитивно от MCP) для JSON в пакете ai.
     -->
     <groupId>ru.mirea</groupId>
     <artifactId>cyberclub-fx</artifactId>
@@ -21,6 +21,7 @@
         <javafx.version>21.0.8</javafx.version>
         <postgresql.version>42.7.13</postgresql.version>
         <poi.version>5.4.1</poi.version>
+        <mcp.version>2.0.1</mcp.version>
         <slf4j.version>2.0.17</slf4j.version>
         <junit.version>5.13.4</junit.version>
         <assertj.version>3.27.3</assertj.version>
@@ -45,6 +46,18 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>${postgresql.version}</version>
+        </dependency>
+        <!--
+            MCP (Model Context Protocol) — официальная Java-библиотека от modelcontextprotocol/java-sdk.
+            Сервер на STDIO-транспорте даёт внешнему ИИ (Claude Desktop, opencode, Copilot)
+            доступ к инструментам приложения: чтение и изменение броней, клиентов, статистики.
+            Вариант mcp-json-jackson2 подтягивает Jackson 2.x — он же используется для
+            сериализации запросов к OpenRouter (см. пакет ai).
+        -->
+        <dependency>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp-json-jackson2</artifactId>
+            <version>${mcp.version}</version>
         </dependency>
         <!-- Apache POI: экспорт в Excel (.xlsx) -->
         <dependency>

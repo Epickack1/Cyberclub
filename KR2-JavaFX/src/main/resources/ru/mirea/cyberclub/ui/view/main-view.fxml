@@ -64,6 +64,9 @@
             <Tab fx:id="statisticsTab" text="Статистика">
                 <fx:include fx:id="statistics" source="statistics-tab.fxml"/>
             </Tab>
+            <Tab fx:id="chatTab" text="ИИ-ассистент">
+                <fx:include fx:id="chat" source="chat-tab.fxml"/>
+            </Tab>
         </TabPane>
     </center>
 

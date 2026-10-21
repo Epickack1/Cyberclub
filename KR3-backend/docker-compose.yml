@@ -1,0 +1,72 @@
+# CyberClub backend (КР3): PostgreSQL + Spring Boot.
+# Запуск из папки KR3-backend:
+#   docker compose --env-file .env up -d --wait
+# Остановка без потери данных:
+#   docker compose --env-file .env down
+name: cyberclub
+
+services:
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required in .env}
+      # Часовой пояс клуба: от него зависят CURRENT_DATE в тестовых данных.
+      TZ: ${APP_TIME_ZONE:-Europe/Moscow}
+      PGTZ: ${APP_TIME_ZONE:-Europe/Moscow}
+    volumes:
+      # Данные в named volume: обычный "docker compose down" их не удаляет.
+      - cyberclub_postgres:/var/lib/postgresql/data
+    ports:
+      # Порт опубликован только на localhost.
+      - "127.0.0.1:${POSTGRES_PORT:-55433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    security_opt:
+      - no-new-privileges:true
+
+  backend:
+    # Как в примере из архива: Maven + JDK 21 собирают и запускают проект из исходников.
+    image: maven:3.9.11-eclipse-temurin-21
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    working_dir: /workspace
+    environment:
+      MAVEN_OPTS: -Dfile.encoding=UTF-8 -Dstyle.color=never -XX:MaxRAMPercentage=75
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      PERMANENT_DELETE_ENABLED: ${PERMANENT_DELETE_ENABLED:-false}
+      APP_TIME_ZONE: ${APP_TIME_ZONE:-Europe/Moscow}
+      TZ: ${APP_TIME_ZONE:-Europe/Moscow}
+    volumes:
+      # Исходники только для чтения: контейнер проект не меняет.
+      - ./pom.xml:/workspace/pom.xml:ro
+      - ./src:/workspace/src:ro
+      - backend_target:/workspace/target
+      - maven_cache:/root/.m2
+    command: ["mvn", "-B", "-ntp", "-DskipTests", "spring-boot:run"]
+    ports:
+      - "127.0.0.1:${APP_PORT:-8081}:8080"
+    healthcheck:
+      # Проверяем, что Tomcat принимает соединения (curl в образе не нужен).
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/127.0.0.1/8080'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  cyberclub_postgres:
+  backend_target:
+  maven_cache:

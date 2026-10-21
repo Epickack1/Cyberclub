@@ -21,7 +21,7 @@ if errorlevel 1 (
 
 if not exist "target\cyberclub.jar" (
     echo Сборка проекта, первый запуск может занять несколько минут...
-    call mvnw.cmd -q -DskipTests package
+    call "%~dp0mvnw.cmd" -q -DskipTests package
     if errorlevel 1 (
         echo Сборка не удалась. Проверьте JDK 21 и подключение к интернету.
         exit /b 1

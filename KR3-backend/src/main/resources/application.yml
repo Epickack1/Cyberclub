@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: cyberclub-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:55433/cyberclub}
+    username: ${SPRING_DATASOURCE_USERNAME:cyberclub_app}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 5000
+  jpa:
+    open-in-view: false
+    hibernate:
+      # Схему создаёт и меняет только Flyway, Hibernate её лишь проверяет.
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  jackson:
+    default-property-inclusion: non_null
+    deserialization:
+      fail-on-unknown-properties: true
+
+server:
+  port: 8080
+  error:
+    include-message: never
+    include-stacktrace: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+app:
+  # Окончательное удаление брони выключено по умолчанию (в КР3 — только администратор).
+  permanent-delete-enabled: ${PERMANENT_DELETE_ENABLED:false}
+  # Время брони хранится как местное время клуба.
+  time-zone: ${APP_TIME_ZONE:Europe/Moscow}

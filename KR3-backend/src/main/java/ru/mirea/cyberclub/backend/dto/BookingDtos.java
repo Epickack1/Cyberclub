@@ -3,7 +3,6 @@ package ru.mirea.cyberclub.backend.dto;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -36,7 +35,7 @@ public final class BookingDtos {
     }
 
     public record BookingResponse(
-            UUID id,
+            Long id,
             Long number,
             Long clientId,
             String clientNickname,

@@ -15,6 +15,12 @@
 #     }
 #   }
 #
+# Источник данных выбирается по окружению:
+#   CYBERCLUB_API_URL=http://localhost:8080 — ходить в REST API (KR3-backend), базу не открывать;
+#   без неё — прямое подключение к PostgreSQL (нужен CYBERCLUB_DB_PASSWORD).
+# Оба режима работают с одной базой cyberclub: KR3-backend по умолчанию подключается
+# к ней же, поэтому изменения из чата видны в окне приложения.
+#
 # Список инструментов без запуска протокола:  .\mcp-server.ps1 -ListTools
 param(
     [switch]$ListTools
@@ -36,7 +42,8 @@ function Invoke-Tool {
     }
 }
 
-if (-not $env:CYBERCLUB_DB_PASSWORD) {
+# В REST-режиме пароль БД не нужен — предупреждаем только когда он действительно требуется.
+if (-not $env:CYBERCLUB_API_URL -and -not $env:CYBERCLUB_DB_PASSWORD) {
     [Console]::Error.WriteLine("ВНИМАНИЕ: CYBERCLUB_DB_PASSWORD не задана — будет использован пароль из database.properties.")
 }
 

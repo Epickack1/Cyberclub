@@ -304,6 +304,35 @@
 }
 .bubble-system .bubble-text { -fx-text-fill: #4a3a9e; }
 
+/* Текст реплики — нередактируемый TextArea (только он даёт выделение и Ctrl+C).
+   Внутри пузыря он должен быть невидим: фон, рамку и отступы рисует сам пузырь. */
+.bubble-textarea {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+.bubble-textarea .content {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+.bubble-textarea .scroll-pane,
+.bubble-textarea .scroll-pane .viewport,
+.bubble-textarea .scroll-pane .content {
+    -fx-background-color: transparent;
+}
+/* Полосы прокрутки не нужны: высоту поля подгоняет ChatController под текст. */
+.bubble-textarea .scroll-bar {
+    -fx-pref-width: 0;
+    -fx-pref-height: 0;
+    -fx-opacity: 0;
+}
+.bubble-user .bubble-textarea { -fx-text-fill: white; }
+.bubble-system .bubble-textarea { -fx-text-fill: #4a3a9e; }
+
 .chat-input-bar {
     -fx-background-color: -cc-surface;
     -fx-background-radius: 12;

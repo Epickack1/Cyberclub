@@ -14,6 +14,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
 
 import ru.mirea.cyberclub.AppContext;
 import ru.mirea.cyberclub.ai.ChatService;
@@ -157,15 +158,22 @@ public class ChatController implements RefreshableTab {
     /**
      * Добавляет реплику в конец ленты и прокручивает её вниз.
      *
+     * <p>Текст реплики — не {@code Label}, а нередактируемый {@code TextArea}: только он
+     * в JavaFX даёт выделение мышью, {@code Ctrl+C} и контекстное меню «Копировать».
+     * Надпись скопировать нельзя, а переписку с ИИ обычно хочется перенести в отчёт.</p>
+     *
      * @return узел строки — его можно убрать, если сообщение не дойдёт до модели
      */
     private Node appendBubble(String styleClass, String text) {
-        Label label = new Label(text);
-        label.setWrapText(true);
-        label.setMaxWidth(BUBBLE_MAX_WIDTH);
-        label.getStyleClass().add("bubble-text");
+        TextArea area = new TextArea(text);
+        area.setEditable(false);
+        area.setWrapText(true);
+        area.setFocusTraversable(false);
+        area.getStyleClass().addAll("bubble-text", "bubble-textarea");
+        area.setPrefWidth(BUBBLE_MAX_WIDTH);
+        area.setMaxWidth(BUBBLE_MAX_WIDTH);
 
-        VBox bubble = new VBox(label);
+        VBox bubble = new VBox(area);
         bubble.getStyleClass().add(styleClass);
         bubble.setMaxWidth(BUBBLE_MAX_WIDTH + 24);
 
@@ -174,8 +182,29 @@ public class ChatController implements RefreshableTab {
         row.setAlignment(styleClass.equals("bubble-user") ? Pos.CENTER_RIGHT : Pos.CENTER_LEFT);
 
         messagesBox.getChildren().add(row);
+        fitBubbleHeight(area);
+        // Шрифт из CSS применяется уже после добавления в сцену — пересчитываем высоту ещё раз.
+        Platform.runLater(() -> fitBubbleHeight(area));
         scrollToBottom();
         return row;
+    }
+
+    /**
+     * Высота под текст: {@code TextArea} сам под содержимое не растёт, а полоса прокрутки
+     * внутри пузыря выглядела бы как ошибка вёрстки. Ширину переноса измеряем тем же
+     * шрифтом, что и у поля, поэтому число строк совпадает с настоящим.
+     */
+    private void fitBubbleHeight(TextArea area) {
+        double width = area.getWidth() > 0 ? area.getWidth() : BUBBLE_MAX_WIDTH;
+        Text probe = new Text(area.getText());
+        probe.setFont(area.getFont());
+        probe.setWrappingWidth(Math.max(40, width));
+        double height = Math.ceil(probe.getLayoutBounds().getHeight()) + 6;
+        if (Math.abs(area.getPrefHeight() - height) > 0.5) {
+            area.setPrefHeight(height);
+            area.setMinHeight(height);
+            area.setMaxHeight(height);
+        }
     }
 
     private void scrollToBottom() {

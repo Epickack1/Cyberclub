@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -14,7 +13,7 @@ import org.springframework.data.repository.query.Param;
 import ru.mirea.cyberclub.backend.domain.Booking;
 import ru.mirea.cyberclub.backend.domain.BookingStatus;
 
-public interface BookingRepository extends JpaRepository<Booking, UUID>, JpaSpecificationExecutor<Booking> {
+public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpecificationExecutor<Booking> {
 
     Optional<Booking> findByNumber(Long number);
 
@@ -23,7 +22,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID>, JpaSpec
     /**
      * Действующие брони этого места, пересекающиеся с интервалом [start, end).
      * Отменённые и архивные место не занимают. {@code excludeId} — бронь, которую сейчас
-     * редактируют (для новой брони передаётся нулевой UUID, такой записи не бывает).
+     * редактируют (для новой брони передаётся 0, такой записи не бывает).
      */
     @Query("""
             select b from Booking b
@@ -36,7 +35,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID>, JpaSpec
     List<Booking> findOverlapping(@Param("stationId") Long stationId,
                                   @Param("start") LocalDateTime start,
                                   @Param("end") LocalDateTime end,
-                                  @Param("excludeId") UUID excludeId);
+                                  @Param("excludeId") Long excludeId);
 
     // --- аналитика (только неархивные брони) ---
 

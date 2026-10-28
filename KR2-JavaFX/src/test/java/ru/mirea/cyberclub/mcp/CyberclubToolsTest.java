@@ -19,6 +19,8 @@ import org.junit.jupiter.api.Test;
 
 import ru.mirea.cyberclub.AppServices;
 import ru.mirea.cyberclub.exception.AppException;
+import ru.mirea.cyberclub.exception.BusinessRuleException;
+import ru.mirea.cyberclub.exception.EntityNotFoundException;
 import ru.mirea.cyberclub.exception.ValidationException;
 import ru.mirea.cyberclub.model.Booking;
 import ru.mirea.cyberclub.model.BookingStatus;
@@ -159,13 +161,15 @@ class CyberclubToolsTest {
     }
 
     @Test
-    @DisplayName("Опубликован именно тот набор инструментов, что заявлен в задании")
+    @DisplayName("Опубликован ожидаемый набор инструментов")
     void expectedToolset() {
         assertThat(CyberclubTools.all(services).stream().map(CyberclubTools.Tool::name))
                 .containsExactlyInAnyOrder(
                         "list_bookings", "get_booking", "create_booking",
                         "set_booking_status", "search_bookings",
-                        "list_clients", "create_client",
+                        "find_free_slots", "reschedule_booking",
+                        "list_clients", "get_client", "create_client",
+                        "update_client", "delete_client",
                         "list_stations", "get_statistics");
     }
 
@@ -471,6 +475,154 @@ class CyberclubToolsTest {
     void createClientRequiresFields() {
         assertThatThrownBy(() -> run("create_client", Map.of("nickname", "Neo")))
                 .isInstanceOf(AppException.class);
+    }
+
+    // ---------------------------------------------------------------- конфликты
+
+    @Test
+    @DisplayName("find_free_slots показывает свободные места и занятые брони")
+    void findFreeSlotsShowsBusySlots() {
+        String out = run("find_free_slots", Map.of(
+                "startTime", tomorrow(14, 0).toString(),
+                "endTime", tomorrow(16, 0).toString()));
+
+        assertThat(out).contains("Свободны").contains("VIP-01").contains("Заняты в это время");
+    }
+
+    @Test
+    @DisplayName("find_free_slots фильтрует по зоне и умеет сказать, что мест нет")
+    void findFreeSlotsFiltersByZone() {
+        assertThat(run("find_free_slots", Map.of(
+                "startTime", tomorrow(14, 0).toString(),
+                "endTime", tomorrow(16, 0).toString(),
+                "zone", "VIP")))
+                .contains("VIP-01")
+                .doesNotContain("Заняты");
+
+        // В стандарте на это время занят PC-01, а PC-02 отключён — свободных нет.
+        assertThat(run("find_free_slots", Map.of(
+                "startTime", tomorrow(14, 0).toString(),
+                "endTime", tomorrow(16, 0).toString(),
+                "zone", "STANDARD")))
+                .contains("Свободных мест").contains("нет");
+    }
+
+    @Test
+    @DisplayName("find_free_slots отклоняет перевёрнутый интервал")
+    void findFreeSlotsRejectsBadInterval() {
+        assertThatThrownBy(() -> run("find_free_slots", Map.of(
+                "startTime", tomorrow(16, 0).toString(),
+                "endTime", tomorrow(14, 0).toString())))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining("позже");
+    }
+
+    @Test
+    @DisplayName("reschedule_booking переносит бронь, сохраняя клиента и комментарий")
+    void rescheduleMovesBooking() {
+        String out = run("reschedule_booking", Map.of(
+                "id", booking.getId(),
+                "stationName", "VIP-01",
+                "startTime", tomorrow(18, 0).toString(),
+                "endTime", tomorrow(20, 0).toString()));
+
+        assertThat(out).contains("Бронь перенесена").contains("VIP-01");
+
+        Booking moved = bookingRepo.findById(booking.getId()).orElseThrow();
+        assertThat(moved.getStationId()).isEqualTo(vip.getId());
+        assertThat(moved.getClientId()).isEqualTo(adult.getId());
+        assertThat(moved.getStartTime()).isEqualTo(tomorrow(18, 0));
+        assertThat(moved.getEndTime()).isEqualTo(tomorrow(20, 0));
+        assertThat(moved.getComment()).isEqualTo("Турнир");
+    }
+
+    @Test
+    @DisplayName("reschedule_booking без места оставляет бронь на том же стационаре")
+    void rescheduleKeepsStationWhenNotGiven() {
+        run("reschedule_booking", Map.of(
+                "id", booking.getId(),
+                "startTime", tomorrow(18, 0).toString(),
+                "endTime", tomorrow(19, 0).toString()));
+
+        Booking moved = bookingRepo.findById(booking.getId()).orElseThrow();
+        assertThat(moved.getStationId()).isEqualTo(pc.getId());
+    }
+
+    // ---------------------------------------------------------------- карточка клиента
+
+    @Test
+    @DisplayName("get_client показывает карточку по идентификатору")
+    void getClientReturnsCard() {
+        String out = run("get_client", Map.of("id", adult.getId()));
+
+        assertThat(out).contains("Карточка клиента").contains("@Shadow")
+                .contains("Иванов Иван").contains("+79160000001");
+    }
+
+    @Test
+    @DisplayName("get_client на неизвестный id отвечает «не найден»")
+    void getClientUnknownId() {
+        assertThatThrownBy(() -> run("get_client", Map.of("id", 999)))
+                .isInstanceOf(EntityNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("update_client меняет только переданные поля")
+    void updateClientChangesOnlyGivenFields() {
+        String out = run("update_client", Map.of(
+                "id", minor.getId(),
+                "phone", "+79160000077",
+                "email", "kirill@mail.ru"));
+
+        assertThat(out).contains("Клиент обновлён").contains("Kirya")
+                .contains("+79160000077").contains("kirill@mail.ru");
+
+        Client updated = clientRepo.findById(minor.getId()).orElseThrow();
+        assertThat(updated.getNickname()).isEqualTo("Kirya");
+        assertThat(updated.getFullName()).isEqualTo("Смирнов Кирилл");
+        assertThat(updated.getPhone()).isEqualTo("+79160000077");
+    }
+
+    @Test
+    @DisplayName("update_client требует хотя бы одно поле для изменения")
+    void updateClientRequiresAtLeastOneField() {
+        assertThatThrownBy(() -> run("update_client", Map.of("id", minor.getId())))
+                .isInstanceOf(AppException.class)
+                .hasMessageContaining("ни одного поля");
+    }
+
+    @Test
+    @DisplayName("update_client отклоняет ник с кириллицей")
+    void updateClientRejectsCyrillicNickname() {
+        assertThatThrownBy(() -> run("update_client", Map.of(
+                "id", minor.getId(), "nickname", "Амегон")))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    @DisplayName("update_client на неизвестный id отвечает «не найден»")
+    void updateClientUnknownId() {
+        assertThatThrownBy(() -> run("update_client", Map.of("id", 999, "phone", "+79160000078")))
+                .isInstanceOf(EntityNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("delete_client удаляет клиента без броней")
+    void deleteClientWithoutBookings() {
+        String out = run("delete_client", Map.of("id", minor.getId()));
+
+        assertThat(out).contains("удалён");
+        assertThat(clientRepo.findAll()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("delete_client отказывает, если у клиента есть брони")
+    void deleteClientWithHistoryIsForbidden() {
+        assertThatThrownBy(() -> run("delete_client", Map.of("id", adult.getId())))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("Нельзя удалить клиента Shadow");
+
+        assertThat(clientRepo.findAll()).hasSize(2);
     }
 
     // ---------------------------------------------------------------- разбор

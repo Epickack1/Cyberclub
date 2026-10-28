@@ -12,6 +12,7 @@ import ru.mirea.cyberclub.AppServices;
 import ru.mirea.cyberclub.db.DatabaseConfig;
 import ru.mirea.cyberclub.db.DatabaseManager;
 import ru.mirea.cyberclub.exception.AppException;
+import ru.mirea.cyberclub.mcp.rest.RestClubApi;
 
 /**
  * Точка входа MCP-сервера: отдельный процесс, который внешний ИИ запускает сам
@@ -34,8 +35,13 @@ import ru.mirea.cyberclub.exception.AppException;
  *   java ... ru.mirea.cyberclub.mcp.McpMain --list-tools
  * </pre>
  *
- * <p>Конфигурация БД — те же переменные окружения, что и у JavaFX-приложения
- * ({@code CYBERCLUB_DB_URL}, {@code CYBERCLUB_DB_USER}, {@code CYBERCLUB_DB_PASSWORD}).</p>
+ * <p>Источник данных выбирается по переменным окружения при запуске:</p>
+ * <ul>
+ *   <li>{@code CYBERCLUB_API_URL} (например {@code http://localhost:8080}) — MCP ходит в
+ *       REST API КР3; базу при этом не открывает, все правила решает бэкенд;</li>
+ *   <li>иначе — прямое подключение к PostgreSQL по {@code CYBERCLUB_DB_URL},
+ *       {@code CYBERCLUB_DB_USER}, {@code CYBERCLUB_DB_PASSWORD}.</li>
+ * </ul>
  */
 public final class McpMain {
 
@@ -49,21 +55,9 @@ public final class McpMain {
         System.setProperty("org.slf4j.simpleLogger.logFile", "System.err");
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
 
-        AppServices services;
-        try {
-            DatabaseConfig config = DatabaseConfig.load();
-            DatabaseManager db = new DatabaseManager(config);
-            db.checkConnection();
-            services = new AppServices(db);
-        } catch (AppException e) {
-            log.error("MCP-сервер не запущен: нет подключения к базе данных CyberClub. "
-                    + "Проверьте, что PostgreSQL работает, а переменная CYBERCLUB_DB_PASSWORD задана.", e);
-            System.exit(1);
-            return;
-        }
-
+        ClubApi api = connect();
         if (args.length > 0 && "--list-tools".equals(args[0])) {
-            printToolList(services);
+            printToolList(api);
             return;
         }
 
@@ -73,11 +67,12 @@ public final class McpMain {
         CountDownLatch stopped = new CountDownLatch(1);
         InputStream stdin = new EofWatchingInputStream(System.in, stopped);
 
-        CyberclubMcpServer mcp = new CyberclubMcpServer(services, stdin, System.out);
-        log.info("MCP-сервер {} v{} запущен (stdio), инструментов: {}",
+        CyberclubMcpServer mcp = new CyberclubMcpServer(api, stdin, System.out);
+        log.info("MCP-сервер {} v{} запущен (stdio), инструментов: {}, источник: {}",
                 CyberclubMcpServer.SERVER_NAME,
                 CyberclubMcpServer.SERVER_VERSION,
-                mcp.toolNames().size());
+                mcp.toolNames().size(),
+                api.describe());
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             log.info("Завершение MCP-сервера по сигналу клиента");
@@ -90,6 +85,33 @@ public final class McpMain {
         // Сюда попадаем по EOF stdin — клиент отключился. Аккуратно закрываем транспорт.
         log.info("Клиент закрыл stdin — завершение MCP-сервера");
         mcp.close();
+    }
+
+    /**
+     * Выбор источника данных при запуске.
+     *
+     * <p>Если задана {@code CYBERCLUB_API_URL} — MCP работает через REST API КР3 и базу сам
+     * не трогает: бэкенд отвечает за доступность мест, длительность и возраст. Иначе —
+     * прямое подключение к PostgreSQL, как было изначально.</p>
+     */
+    private static ClubApi connect() {
+        String apiUrl = RestClubApi.configuredBaseUrl();
+        if (!apiUrl.isEmpty()) {
+            log.info("MCP подключается к REST API: {}", apiUrl);
+            return new RestClubApi(apiUrl);
+        }
+        try {
+            DatabaseConfig config = DatabaseConfig.load();
+            DatabaseManager db = new DatabaseManager(config);
+            db.checkConnection();
+            return new JdbcClubApi(new AppServices(db));
+        } catch (AppException e) {
+            log.error("MCP-сервер не запущен: нет подключения к данным CyberClub. "
+                    + "Задайте CYBERCLUB_API_URL для REST API (KR3-backend) либо проверьте, "
+                    + "что PostgreSQL работает и задана CYBERCLUB_DB_PASSWORD.", e);
+            System.exit(1);
+            throw e;
+        }
     }
 
     /**
@@ -140,9 +162,10 @@ public final class McpMain {
      * в протокольный диалог. Позволяет убедиться, что сервер собрался и видит базу,
      * ещё до подключения реального MCP-клиента.
      */
-    private static void printToolList(AppServices services) {
-        log.info("Инструменты MCP-сервера {}:", CyberclubMcpServer.SERVER_NAME);
-        for (CyberclubTools.Tool tool : CyberclubTools.all(services)) {
+    private static void printToolList(ClubApi api) {
+        log.info("Инструменты MCP-сервера {} (источник: {}):",
+                CyberclubMcpServer.SERVER_NAME, api.describe());
+        for (CyberclubTools.Tool tool : CyberclubTools.all(api)) {
             log.info("  {} — {}", tool.name(), tool.description());
         }
     }

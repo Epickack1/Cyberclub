@@ -4,9 +4,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 import ru.mirea.cyberclub.AppServices;
@@ -15,7 +17,6 @@ import ru.mirea.cyberclub.exception.EntityNotFoundException;
 import ru.mirea.cyberclub.model.Booking;
 import ru.mirea.cyberclub.model.BookingStatus;
 import ru.mirea.cyberclub.model.Client;
-import ru.mirea.cyberclub.model.Statistics;
 import ru.mirea.cyberclub.model.Station;
 import ru.mirea.cyberclub.model.StationType;
 
@@ -27,6 +28,9 @@ import ru.mirea.cyberclub.model.StationType;
  * запись с именем, описанием, JSON-схемой входа и функцией {@code Map -> String}.
  * Благодаря этому логику можно проверять обычным юнит-тестом без запуска сервера,
  * а сам MCP-слой в {@link CyberclubMcpServer} остаётся тонкой обвязкой.</p>
+ *
+ * <p>Данные лежат за портом {@link ClubApi}: один и тот же набор инструментов работает и
+ * над прямым подключением к БД, и над REST API КР3 — меняется только адаптер.</p>
  *
  * <p>Ошибки бизнес-правил («станция занята», «клиент младше 12 лет») не подавляются:
  * они пробрасываются наружу, чтобы MCP пометил результат как ошибку и ИИ увидел причину.</p>
@@ -49,24 +53,34 @@ public final class CyberclubTools {
         }
     }
 
-    /** Весь набор инструментов поверх переданных сервисов приложения. */
+    /** Весь набор инструментов поверх сервисов КР2 — режим по умолчанию. */
     public static List<Tool> all(AppServices services) {
+        return all(new JdbcClubApi(services));
+    }
+
+    /** Весь набор инструментов поверх произвольного источника данных. */
+    public static List<Tool> all(ClubApi api) {
         List<Tool> tools = new ArrayList<>();
-        tools.add(listBookings(services));
-        tools.add(getBooking(services));
-        tools.add(createBooking(services));
-        tools.add(setBookingStatus(services));
-        tools.add(searchBookings(services));
-        tools.add(listClients(services));
-        tools.add(createClient(services));
-        tools.add(listStations(services));
-        tools.add(getStatistics(services));
+        tools.add(listBookings(api));
+        tools.add(getBooking(api));
+        tools.add(createBooking(api));
+        tools.add(setBookingStatus(api));
+        tools.add(findFreeSlots(api));
+        tools.add(rescheduleBooking(api));
+        tools.add(searchBookings(api));
+        tools.add(listClients(api));
+        tools.add(getClient(api));
+        tools.add(createClient(api));
+        tools.add(updateClient(api));
+        tools.add(deleteClient(api));
+        tools.add(listStations(api));
+        tools.add(getStatistics(api));
         return tools;
     }
 
     // ----------------------------------------------------------------- чтение
 
-    private static Tool listBookings(AppServices s) {
+    private static Tool listBookings(ClubApi api) {
         Map<String, Object> props = new LinkedHashMap<>();
         props.put("status", str("Статус брони: CREATED, CONFIRMED, ACTIVE, COMPLETED, CANCELLED"));
         props.put("date", str("Дата в формате YYYY-MM-DD — покажет брони на этот день"));
@@ -87,31 +101,31 @@ public final class CyberclubTools {
 
                     List<Booking> bookings;
                     if (status != null) {
-                        bookings = s.bookings().filterByStatus(status(status));
+                        bookings = api.bookingsByStatus(status(status));
                     } else if (date != null) {
-                        bookings = s.bookings().searchByDate(dateOnly(date));
+                        bookings = api.bookingsByDate(dateOnly(date));
                     } else if (from != null || to != null) {
                         LocalDateTime f = from == null ? LocalDateTime.MIN : dateTime(from);
                         LocalDateTime t = to == null ? LocalDateTime.MAX : dateTime(to);
-                        bookings = s.bookings().filterByPeriod(f, t);
+                        bookings = api.bookingsByPeriod(f, t);
                     } else {
-                        bookings = s.bookings().getAll();
+                        bookings = api.allBookings();
                     }
                     return bookingsView(bookings, limit, "Брони");
                 });
     }
 
-    private static Tool getBooking(AppServices s) {
+    private static Tool getBooking(ClubApi api) {
         return new Tool("get_booking",
                 "Подробная карточка одной брони по её идентификатору.",
                 schema(Map.of("id", num("Идентификатор брони")), "id"),
                 args -> {
                     long id = requireLong(args, "id");
-                    return bookingView(s.bookings().getById(id));
+                    return bookingView(api.booking(id));
                 });
     }
 
-    private static Tool searchBookings(AppServices s) {
+    private static Tool searchBookings(ClubApi api) {
         Map<String, Object> props = new LinkedHashMap<>();
         props.put("query", str("Текст поиска: ник клиента, название стационара или комментарий"));
         return new Tool("search_bookings",
@@ -119,15 +133,11 @@ public final class CyberclubTools {
                 schema(props, "query"),
                 args -> {
                     String query = requireText(args, "query");
-                    List<Booking> found = new ArrayList<>();
-                    found.addAll(s.bookings().searchByClientNickname(query));
-                    found.addAll(s.bookings().searchByStationName(query));
-                    found.addAll(s.bookings().searchByComment(query));
-                    return bookingsView(distinct(found), 50, "Найденные брони");
+                    return bookingsView(api.searchBookings(query), 50, "Найденные брони");
                 });
     }
 
-    private static Tool listClients(AppServices s) {
+    private static Tool listClients(ClubApi api) {
         Map<String, Object> props = new LinkedHashMap<>();
         props.put("query", str("Строка для поиска по нику, ФИО, телефону или email"));
         return new Tool("list_clients",
@@ -135,12 +145,12 @@ public final class CyberclubTools {
                 schema(props),
                 args -> {
                     String query = str(args, "query");
-                    List<Client> clients = query == null ? s.clients().getAll() : s.clients().search(query);
+                    List<Client> clients = query == null ? api.allClients() : api.searchClients(query);
                     return clientsView(clients, 50);
                 });
     }
 
-    private static Tool listStations(AppServices s) {
+    private static Tool listStations(ClubApi api) {
         Map<String, Object> props = new LinkedHashMap<>();
         props.put("type", str("Тип зоны: STANDARD, VIP, BOOTCAMP, CONSOLE"));
         props.put("activeOnly", bool("Только активные (исправные) стационары, по умолчанию false"));
@@ -152,34 +162,27 @@ public final class CyberclubTools {
                     boolean activeOnly = Boolean.TRUE.equals(bool(args, "activeOnly"));
                     List<Station> stations;
                     if (type != null) {
-                        stations = s.stations().getByType(stationType(type));
+                        stations = api.stationsByType(stationType(type));
                     } else if (activeOnly) {
-                        stations = s.stations().getActive();
+                        stations = api.activeStations();
                     } else {
-                        stations = s.stations().getAll();
+                        stations = api.allStations();
                     }
                     return stationsView(stations, activeOnly);
                 });
     }
 
-    private static Tool getStatistics(AppServices s) {
+    private static Tool getStatistics(ClubApi api) {
         return new Tool("get_statistics",
                 "Сводная статистика клуба: клиенты, стационары, брони по статусам, выручка, "
                         + "лучшие клиенты и стационары, брони на сегодня.",
                 schema(Map.of()),
-                args -> {
-                    Statistics st = s.statistics().collect();
-                    StringBuilder out = new StringBuilder("Статистика клуба:\n");
-                    for (var ind : s.statistics().toIndicators(st)) {
-                        out.append("  - ").append(ind.name()).append(": ").append(ind.value()).append('\n');
-                    }
-                    return out.toString().stripTrailing();
-                });
+                args -> api.statisticsText());
     }
 
     // ----------------------------------------------------------------- запись
 
-    private static Tool createBooking(AppServices s) {
+    private static Tool createBooking(ClubApi api) {
         Map<String, Object> props = new LinkedHashMap<>();
         props.put("clientId", num("Идентификатор клиента (см. list_clients)"));
         props.put("clientPhone", str("Телефон клиента в формате +7XXXXXXXXXX — альтернатива clientId"));
@@ -197,13 +200,13 @@ public final class CyberclubTools {
                     Long clientId = optionalLong(args, "clientId");
                     if (clientId == null) {
                         String phone = requireText(args, "clientPhone");
-                        clientId = findClientByPhone(s, phone);
+                        clientId = findClientByPhone(api, phone);
                     }
                     Long stationId = optionalLong(args, "stationId");
                     if (stationId == null) {
-                        stationId = findStationByName(s, requireText(args, "stationName"));
+                        stationId = findStationByName(api, requireText(args, "stationName"));
                     }
-                    Booking created = s.bookings().create(
+                    Booking created = api.createBooking(
                             clientId, stationId,
                             dateTime(requireText(args, "startTime")),
                             dateTime(requireText(args, "endTime")),
@@ -212,7 +215,7 @@ public final class CyberclubTools {
                 });
     }
 
-    private static Tool setBookingStatus(AppServices s) {
+    private static Tool setBookingStatus(ClubApi api) {
         Map<String, Object> props = new LinkedHashMap<>();
         props.put("id", num("Идентификатор брони"));
         props.put("status", str("Новый статус: CONFIRMED, ACTIVE, COMPLETED или CANCELLED"));
@@ -221,13 +224,86 @@ public final class CyberclubTools {
                         + "CONFIRMED → ACTIVE/CANCELLED, ACTIVE → COMPLETED. Недопустимый переход будет отклонён.",
                 schema(props, "id", "status"),
                 args -> {
-                    Booking updated = s.bookings().changeStatus(
+                    Booking updated = api.changeBookingStatus(
                             requireLong(args, "id"), status(requireText(args, "status")));
                     return "Статус обновлён:\n" + bookingView(updated);
                 });
     }
 
-    private static Tool createClient(AppServices s) {
+    private static Tool findFreeSlots(ClubApi api) {
+        Map<String, Object> props = new LinkedHashMap<>();
+        props.put("startTime", str("Начало интервала, ISO-дата и время: 2026-10-14T18:00"));
+        props.put("endTime", str("Конец интервала, ISO-дата и время"));
+        props.put("zone", str("Только эта зона: STANDARD, VIP, BOOTCAMP или CONSOLE"));
+        return new Tool("find_free_slots",
+                "Показать, какие игровые места свободны на интервал, а какие заняты и какой "
+                        + "бронью. Нужен, чтобы разрешить конфликт занятости: подобрать другое "
+                        + "место или время, а не создавать бронь наугад.",
+                schema(props, "startTime", "endTime"),
+                args -> {
+                    LocalDateTime start = dateTime(requireText(args, "startTime"));
+                    LocalDateTime end = dateTime(requireText(args, "endTime"));
+                    if (!end.isAfter(start)) {
+                        throw new AppException("Конец интервала должен быть позже начала.");
+                    }
+                    String zoneText = str(args, "zone");
+                    StationType zone = zoneText == null ? null : stationType(zoneText);
+
+                    List<Station> candidates = zone == null
+                            ? api.activeStations()
+                            : api.stationsByType(zone);
+                    Set<Long> candidateIds = new HashSet<>();
+                    for (Station s : candidates) {
+                        candidateIds.add(s.getId());
+                    }
+                    List<Booking> occupied = api.allBookings().stream()
+                            .filter(b -> candidateIds.contains(b.getStationId()))
+                            .filter(b -> b.getStatus() != BookingStatus.CANCELLED)
+                            .filter(b -> b.getStartTime().isBefore(end) && b.getEndTime().isAfter(start))
+                            .toList();
+                    Set<Long> busyStations = new HashSet<>();
+                    for (Booking b : occupied) {
+                        busyStations.add(b.getStationId());
+                    }
+                    List<Station> free = candidates.stream()
+                            .filter(Station::isActive)
+                            .filter(s -> !busyStations.contains(s.getId()))
+                            .toList();
+                    return freeSlotsView(start, end, zone, free, occupied);
+                });
+    }
+
+    private static Tool rescheduleBooking(ClubApi api) {
+        Map<String, Object> props = new LinkedHashMap<>();
+        props.put("id", num("Идентификатор брони (см. list_bookings)"));
+        props.put("startTime", str("Новое начало, ISO-дата и время"));
+        props.put("endTime", str("Новое окончание, ISO-дата и время"));
+        props.put("stationId", num("Новое игровое место (см. list_stations), необязательно"));
+        props.put("stationName", str("Название нового места — альтернатива stationId"));
+        return new Tool("reschedule_booking",
+                "Перенести бронь на другое время и/или место, не создавая новую. Клиент не "
+                        + "меняется. Так разрешается конфликт занятости: сначала find_free_slots, "
+                        + "затем этот инструмент.",
+                schema(props, "id", "startTime", "endTime"),
+                args -> {
+                    long id = requireLong(args, "id");
+                    Booking current = api.booking(id);
+                    Long stationId = optionalLong(args, "stationId");
+                    if (stationId == null) {
+                        String stationName = str(args, "stationName");
+                        stationId = stationName == null
+                                ? current.getStationId()
+                                : findStationByName(api, stationName);
+                    }
+                    Booking moved = api.rescheduleBooking(id, stationId,
+                            dateTime(requireText(args, "startTime")),
+                            dateTime(requireText(args, "endTime")),
+                            current.getComment());
+                    return "Бронь перенесена:\n" + bookingView(moved);
+                });
+    }
+
+    private static Tool createClient(ClubApi api) {
         Map<String, Object> props = new LinkedHashMap<>();
         props.put("nickname", str("Ник: 3-20 символов, латиница, цифры и подчёркивание"));
         props.put("fullName", str("ФИО клиента"));
@@ -245,8 +321,83 @@ public final class CyberclubTools {
                     client.setPhone(requireText(args, "phone"));
                     client.setEmail(requireText(args, "email"));
                     client.setBirthDate(dateOnly(requireText(args, "birthDate")));
-                    Client saved = s.clients().create(client);
+                    Client saved = api.createClient(client);
                     return "Клиент создан:\n" + clientView(saved);
+                });
+    }
+
+    private static Tool getClient(ClubApi api) {
+        return new Tool("get_client",
+                "Показать карточку клиента по идентификатору: ник, ФИО, телефон, email "
+                        + "и дату рождения.",
+                schema(Map.of("id", num("Идентификатор клиента (см. list_clients)")), "id"),
+                args -> {
+                    Client client = api.client(requireLong(args, "id"));
+                    return "Карточка клиента:\n" + clientView(client);
+                });
+    }
+
+    private static Tool updateClient(ClubApi api) {
+        Map<String, Object> props = new LinkedHashMap<>();
+        props.put("id", num("Идентификатор клиента (см. list_clients)"));
+        props.put("nickname", str("Новый ник: 3-20 символов, латиница, цифры и подчёркивание"));
+        props.put("fullName", str("Новое ФИО"));
+        props.put("phone", str("Новый телефон в формате +7XXXXXXXXXX"));
+        props.put("email", str("Новый email"));
+        props.put("birthDate", str("Новая дата рождения в формате YYYY-MM-DD"));
+        return new Tool("update_client",
+                "Изменить карточку клиента. Меняются только переданные поля, остальные "
+                        + "сохраняются как были. Проверяет формат полей, уникальность "
+                        + "ника, телефона и email, а также возраст не младше 12 лет.",
+                schema(props, "id"),
+                args -> {
+                    long id = requireLong(args, "id");
+                    Client client = api.client(id);
+
+                    boolean changed = false;
+                    String nickname = str(args, "nickname");
+                    if (nickname != null) {
+                        client.setNickname(nickname);
+                        changed = true;
+                    }
+                    String fullName = str(args, "fullName");
+                    if (fullName != null) {
+                        client.setFullName(fullName);
+                        changed = true;
+                    }
+                    String phone = str(args, "phone");
+                    if (phone != null) {
+                        client.setPhone(phone);
+                        changed = true;
+                    }
+                    String email = str(args, "email");
+                    if (email != null) {
+                        client.setEmail(email);
+                        changed = true;
+                    }
+                    String birthDate = str(args, "birthDate");
+                    if (birthDate != null) {
+                        client.setBirthDate(dateOnly(birthDate));
+                        changed = true;
+                    }
+                    if (!changed) {
+                        throw new AppException("Не передано ни одного поля для изменения: "
+                                + "nickname, fullName, phone, email или birthDate.");
+                    }
+                    return "Клиент обновлён:\n" + clientView(api.updateClient(client));
+                });
+    }
+
+    private static Tool deleteClient(ClubApi api) {
+        return new Tool("delete_client",
+                "Удалить карточку клиента. Удалить можно только клиента без бронирований: "
+                        + "история броней — основа статистики и отчётности. Если клиент "
+                        + "ещё ходит в клуб, удаление запрещено правилом бизнес-логики.",
+                schema(Map.of("id", num("Идентификатор клиента (см. list_clients)")), "id"),
+                args -> {
+                    long id = requireLong(args, "id");
+                    api.deleteClient(id);
+                    return "Клиент #" + id + " удалён.";
                 });
     }
 
@@ -323,6 +474,29 @@ public final class CyberclubTools {
         return "#" + c.getId() + " | @" + c.getNickname() + " | " + c.getFullName()
                 + " | " + c.getPhone() + " | " + c.getEmail()
                 + " | " + (c.getBirthDate() == null ? "-" : c.getBirthDate());
+    }
+
+    private static String freeSlotsView(LocalDateTime start, LocalDateTime end, StationType zone,
+                                        List<Station> free, List<Booking> occupied) {
+        String range = start + " — " + end + (zone == null ? "" : " (" + zone.getTitle() + ")");
+        StringBuilder out = new StringBuilder();
+        if (free.isEmpty()) {
+            out.append("Свободных мест на ").append(range).append(" нет.\n");
+        } else {
+            out.append("Свободны на ").append(range).append(": ").append(free.size()).append('\n');
+            for (Station s : free) {
+                out.append("  #").append(s.getId()).append(" | ").append(s.getName())
+                        .append(" | ").append(s.getType().getTitle())
+                        .append(" | ").append(s.getHourlyRate()).append(" ₽/ч\n");
+            }
+        }
+        if (!occupied.isEmpty()) {
+            out.append("Заняты в это время:\n");
+            for (Booking b : occupied) {
+                out.append("  ").append(bookingOneLine(b)).append('\n');
+            }
+        }
+        return out.toString().stripTrailing();
     }
 
     private static String clientView(Client c) {
@@ -459,8 +633,8 @@ public final class CyberclubTools {
                 + "либо по-русски: Стандарт, VIP, Буткемп, Консоль.");
     }
 
-    private static Long findClientByPhone(AppServices s, String phone) {
-        for (Client c : s.clients().getAll()) {
+    private static Long findClientByPhone(ClubApi api, String phone) {
+        for (Client c : api.allClients()) {
             if (phone.equals(c.getPhone())) {
                 return c.getId();
             }
@@ -468,24 +642,14 @@ public final class CyberclubTools {
         throw new EntityNotFoundException("Клиент с телефоном " + phone + " не найден.");
     }
 
-    private static Long findStationByName(AppServices s, String name) {
+    private static Long findStationByName(ClubApi api, String name) {
         String wanted = name.trim().toLowerCase();
-        for (Station st : s.stations().getAll()) {
+        for (Station st : api.allStations()) {
             if (st.getName() != null && st.getName().trim().toLowerCase().equals(wanted)) {
                 return st.getId();
             }
         }
         throw new EntityNotFoundException("Стационар с названием \"" + name + "\" не найден.");
-    }
-
-    private static List<Booking> distinct(List<Booking> source) {
-        Map<Long, Booking> byId = new LinkedHashMap<>();
-        for (Booking b : source) {
-            if (b.getId() != null) {
-                byId.putIfAbsent(b.getId(), b);
-            }
-        }
-        return new ArrayList<>(byId.values());
     }
 
     private static String nullToDash(String value) {

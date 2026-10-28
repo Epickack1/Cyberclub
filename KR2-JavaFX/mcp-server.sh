@@ -16,6 +16,12 @@
 #     }
 #   }
 #
+# Источник данных выбирается по окружению:
+#   CYBERCLUB_API_URL=http://localhost:8080 — ходить в REST API (KR3-backend), базу не открывать;
+#   без неё — прямое подключение к PostgreSQL (нужен CYBERCLUB_DB_PASSWORD).
+# Оба режима работают с одной базой cyberclub: KR3-backend по умолчанию подключается
+# к ней же, поэтому изменения из чата видны в окне приложения.
+#
 # Список доступных инструментов без запуска протокола:  ./mcp-server.sh --list-tools
 set -e
 cd "$(dirname "$0")"
@@ -50,8 +56,8 @@ if ! java_is_21 "$JAVA_HOME"; then
 fi
 JAVA_EXE="$JAVA_HOME/bin/java"
 
-# Сервису нужен пароль БД — сообщаем об этом заранее, а не через падение JDBC.
-if [ -z "$CYBERCLUB_DB_PASSWORD" ]; then
+# В REST-режиме пароль БД не нужен — предупреждаем только когда он действительно требуется.
+if [ -z "$CYBERCLUB_API_URL" ] && [ -z "$CYBERCLUB_DB_PASSWORD" ]; then
     echo "ВНИМАНИЕ: CYBERCLUB_DB_PASSWORD не задана — будет использован пароль из database.properties." >&2
 fi
 

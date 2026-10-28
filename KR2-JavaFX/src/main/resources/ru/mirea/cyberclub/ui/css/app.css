@@ -52,6 +52,18 @@
 .header-title { -fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold; }
 .header-subtitle { -fx-text-fill: #9aa3c2; }
 
+/* Пользователь в шапке и кнопка выхода */
+.header-user { -fx-text-fill: white; -fx-font-weight: bold; }
+.header-button {
+    -fx-background-color: transparent;
+    -fx-border-color: #4a5280;
+    -fx-text-fill: #dfe3f5;
+}
+.header-button:hover { -fx-background-color: #232a48; -fx-border-color: #9aa3c2; }
+
+/* Окно входа */
+.login-title { -fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: -cc-text; }
+
 /* ----------------------------------------------------------------- вкладки */
 
 .main-tabs > .tab-header-area {

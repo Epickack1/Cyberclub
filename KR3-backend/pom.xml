@@ -7,8 +7,9 @@
     <!--
         КР3: backend информационной системы "Киберспортивный клуб CyberClub".
         За основу взят pom.xml из методички КР3 (backend Student Hub).
-        Этап 1 (сейчас): REST API для клиентов, игровых мест и бронирований, JPA, Flyway, Swagger.
-        Этап 2 (КР3): добавить spring-boot-starter-security, jjwt-* и commons-csv из методички.
+        Этап 1: REST API для клиентов, игровых мест и бронирований, JPA, Flyway, Swagger.
+        Этап 2: авторизация — spring-boot-starter-security и jjwt-* из методички (JWT, роли, BCrypt).
+        Осталось: commons-csv для импорта/экспорта.
     -->
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -26,6 +27,7 @@
     <properties>
         <java.version>21</java.version>
         <springdoc.version>2.8.9</springdoc.version>
+        <jjwt.version>0.12.6</jjwt.version>
     </properties>
 
     <dependencies>
@@ -43,6 +45,29 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <!-- Авторизация: фильтры безопасности, BCrypt -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <!-- JWT: выпуск и проверка access-токенов -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
         </dependency>
         <!-- /actuator/health для healthcheck -->
         <dependency>
@@ -81,6 +106,11 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

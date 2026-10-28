@@ -46,6 +46,17 @@
             <artifactId>postgresql</artifactId>
             <version>${postgresql.version}</version>
         </dependency>
+        <!-- Jackson: JSON ↔ Java-объекты для режима REST API (как в javafx-client примера) -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.19.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>2.19.2</version>
+        </dependency>
         <!-- Apache POI: экспорт в Excel (.xlsx) -->
         <dependency>
             <groupId>org.apache.poi</groupId>

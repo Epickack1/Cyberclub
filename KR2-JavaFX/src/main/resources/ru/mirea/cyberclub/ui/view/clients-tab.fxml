@@ -20,6 +20,8 @@
             <Button text="＋ Новый клиент" styleClass="primary-button" onAction="#onAdd"/>
             <Button fx:id="editButton" text="Изменить" onAction="#onEdit"/>
             <Button fx:id="deleteButton" text="Удалить" styleClass="danger-button" onAction="#onDelete"/>
+            <Button fx:id="accountButton" text="Учётная запись…" onAction="#onCreateAccount"
+                    visible="false" managed="false"/>
             <Region HBox.hgrow="ALWAYS"/>
             <TextField fx:id="searchField" prefWidth="300" promptText="Поиск: ник, ФИО, телефон, email"/>
             <Button text="⟳ Обновить" onAction="#refresh"/>

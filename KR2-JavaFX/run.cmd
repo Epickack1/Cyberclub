@@ -13,5 +13,5 @@ if "%CYBERCLUB_DB_PASSWORD%"=="" (
     echo Задать на текущий сеанс:  set CYBERCLUB_DB_PASSWORD=ваш_пароль
 )
 
-call "%~dp0mvnw.cmd" -q javafx:run
+call mvnw.cmd -q javafx:run
 endlocal

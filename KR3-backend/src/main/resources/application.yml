@@ -46,3 +46,17 @@ app:
   permanent-delete-enabled: ${PERMANENT_DELETE_ENABLED:false}
   # Время брони хранится как местное время клуба.
   time-zone: ${APP_TIME_ZONE:Europe/Moscow}
+  security:
+    # Ключ подписи JWT (Base64, не меньше 32 байт). Если пустой — генерируется при запуске,
+    # и после перезапуска сервера все пользователи входят заново.
+    jwt-secret-base64: ${JWT_SECRET_BASE64:}
+    jwt-issuer: ${JWT_ISSUER:cyberclub}
+    access-minutes: ${ACCESS_TOKEN_MINUTES:15}
+    refresh-days: ${REFRESH_TOKEN_DAYS:14}
+    # Защита от перебора паролей: после N неудачных попыток вход блокируется на lock-minutes.
+    max-failed-logins: ${MAX_FAILED_LOGINS:5}
+    lock-minutes: ${LOGIN_LOCK_MINUTES:15}
+    # Первый администратор создаётся при запуске, если в базе ещё нет ни одного пользователя.
+    bootstrap-admin-email: ${BOOTSTRAP_ADMIN_EMAIL:}
+    bootstrap-admin-name: ${BOOTSTRAP_ADMIN_NAME:Администратор клуба}
+    bootstrap-admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:}

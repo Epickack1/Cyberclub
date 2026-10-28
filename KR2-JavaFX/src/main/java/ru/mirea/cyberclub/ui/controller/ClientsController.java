@@ -21,6 +21,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.input.MouseButton;
 import javafx.stage.Window;
 import ru.mirea.cyberclub.AppContext;
+import ru.mirea.cyberclub.auth.Role;
 import ru.mirea.cyberclub.model.Booking;
 import ru.mirea.cyberclub.model.BookingStatus;
 import ru.mirea.cyberclub.model.Client;
@@ -56,6 +57,8 @@ public class ClientsController implements RefreshableTab {
     private Button editButton;
     @FXML
     private Button deleteButton;
+    @FXML
+    private Button accountButton;
     @FXML
     private Label countLabel;
 
@@ -119,6 +122,11 @@ public class ClientsController implements RefreshableTab {
         var selected = table.getSelectionModel().selectedItemProperty();
         editButton.disableProperty().bind(selected.isNull());
         deleteButton.disableProperty().bind(selected.isNull());
+        // Учётные записи клиентов для сайта создаёт только администратор системы
+        boolean admin = context.authEnabled() && context.auth().hasRole(Role.ADMIN);
+        accountButton.setVisible(admin);
+        accountButton.setManaged(admin);
+        accountButton.disableProperty().bind(selected.isNull());
         selected.addListener((obs, old, client) -> loadHistory(client));
 
         historyTable.setItems(history);
@@ -204,6 +212,25 @@ public class ClientsController implements RefreshableTab {
             context.clients().delete(client.getId());
             master.remove(client);
             updateCount();
+        } catch (RuntimeException e) {
+            Dialogs.error(owner(), e);
+        }
+    }
+
+    /** Учётная запись клиента для входа на сайт клуба; email и имя берутся из карточки. */
+    @FXML
+    private void onCreateAccount() {
+        Client client = table.getSelectionModel().getSelectedItem();
+        if (client == null) {
+            return;
+        }
+        try {
+            AppContext.View<UserFormController> view = context.load("user-form.fxml");
+            view.controller().forClient(client.getEmail(), client.getFullName());
+            FormDialog.show(owner(), view, "Создать", "Отмена").ifPresent(user ->
+                    Dialogs.info(owner(), "Учётная запись создана",
+                            client.getNickname() + " (" + client.getFullName() + ") может входить на сайт клуба.\n"
+                                    + "Логин: " + user.email() + "\nПередайте клиенту пароль, который вы задали."));
         } catch (RuntimeException e) {
             Dialogs.error(owner(), e);
         }

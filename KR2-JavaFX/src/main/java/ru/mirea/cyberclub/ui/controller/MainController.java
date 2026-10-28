@@ -2,10 +2,15 @@ package ru.mirea.cyberclub.ui.controller;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.layout.VBox;
 import ru.mirea.cyberclub.AppContext;
+import ru.mirea.cyberclub.auth.Role;
+import ru.mirea.cyberclub.auth.UserInfo;
 import ru.mirea.cyberclub.ui.util.Dialogs;
 
 /**
@@ -29,6 +34,20 @@ public class MainController {
     private Tab statisticsTab;
     @FXML
     private Label dbLabel;
+    @FXML
+    private VBox userBox;
+    @FXML
+    private Label userNameLabel;
+    @FXML
+    private Label userRoleLabel;
+    @FXML
+    private Button logoutButton;
+    @FXML
+    private MenuItem logoutMenuItem;
+
+    /** Вкладка «Пользователи» — создаётся только для администратора. */
+    private Tab usersTab;
+    private UsersController usersController;
 
     @FXML
     private BookingsController bookingsController;
@@ -47,7 +66,10 @@ public class MainController {
 
     @FXML
     private void initialize() {
-        dbLabel.setText("PostgreSQL: " + context.db().describe());
+        dbLabel.setText(context.dataSource());
+        if (context.authEnabled()) {
+            context.auth().currentUser().ifPresent(this::showUser);
+        }
         bookingsController.setOnShowStatistics(() -> tabs.getSelectionModel().select(statisticsTab));
         statisticsController.setSelectionSupplier(bookingsController::visibleBookings);
 
@@ -77,7 +99,35 @@ public class MainController {
         if (tab == statisticsTab) {
             return statisticsController;
         }
+        if (tab != null && tab == usersTab) {
+            return usersController;
+        }
         return null;
+    }
+
+    /** Показывает в шапке, кто вошёл; администратору добавляет вкладку «Пользователи». */
+    private void showUser(UserInfo user) {
+        userNameLabel.setText(user.displayName());
+        userRoleLabel.setText(user.mainRole().getTitle() + " · " + user.email());
+        for (var node : new javafx.scene.Node[] {userBox, logoutButton}) {
+            node.setVisible(true);
+            node.setManaged(true);
+        }
+        logoutMenuItem.setVisible(true);
+        if (user.hasRole(Role.ADMIN)) {
+            AppContext.View<UsersController> view = context.load("users-tab.fxml");
+            usersController = view.controller();
+            usersTab = new Tab("Пользователи", view.root());
+            tabs.getTabs().add(usersTab);
+        }
+    }
+
+    @FXML
+    private void onLogout() {
+        if (Dialogs.confirm(tabs.getScene().getWindow(), "Выйти из учётной записи?",
+                "Откроется окно входа.")) {
+            context.logout();
+        }
     }
 
     // ------------------------------------------------------------------- меню
@@ -109,7 +159,7 @@ public class MainController {
         Dialogs.info(tabs.getScene().getWindow(), "CyberClub — киберспортивный клуб",
                 "Контрольная работа №2: настольное приложение JavaFX.\n"
                         + "Учёт клиентов, игровых мест и бронирований.\n\n"
-                        + "Java 21 · JavaFX 21 · FXML + CSS · JDBC · PostgreSQL\n"
-                        + "База данных: " + context.db().describe());
+                        + "Java 21 · JavaFX 21 · FXML + CSS · JDBC / REST API (Spring Boot) · PostgreSQL\n"
+                        + "Источник данных: " + context.dataSource());
     }
 }

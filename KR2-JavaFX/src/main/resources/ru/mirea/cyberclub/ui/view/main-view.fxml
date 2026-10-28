@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuBar?>
@@ -26,6 +27,7 @@
                         <accelerator><KeyCodeCombination code="E" control="UP" meta="UP" alt="UP" shift="UP" shortcut="DOWN"/></accelerator>
                     </MenuItem>
                     <SeparatorMenuItem/>
+                    <MenuItem fx:id="logoutMenuItem" text="Сменить пользователя…" onAction="#onLogout" visible="false"/>
                     <MenuItem text="Выход" onAction="#onExit"/>
                 </Menu>
                 <Menu text="Данные">
@@ -46,6 +48,14 @@
                     <Label styleClass="header-title" text="CyberClub"/>
                     <Label styleClass="header-subtitle" text="Учёт клиентов, игровых мест и бронирований"/>
                 </VBox>
+                <Region HBox.hgrow="ALWAYS"/>
+                <!-- Кто вошёл и кнопка выхода (видны, если включён вход через сервер КР3) -->
+                <VBox fx:id="userBox" spacing="2" alignment="CENTER_RIGHT" visible="false" managed="false">
+                    <Label fx:id="userNameLabel" styleClass="header-user"/>
+                    <Label fx:id="userRoleLabel" styleClass="header-subtitle"/>
+                </VBox>
+                <Button fx:id="logoutButton" text="Выйти" styleClass="header-button" onAction="#onLogout"
+                        visible="false" managed="false"/>
             </HBox>
         </VBox>
     </top>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DialogPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Регистрация пользователя администратором. -->
+<DialogPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="ru.mirea.cyberclub.ui.controller.UserFormController"
+            prefWidth="540">
+    <content>
+        <VBox styleClass="form" spacing="12">
+            <GridPane hgap="12" vgap="10">
+                <columnConstraints>
+                    <ColumnConstraints minWidth="140"/>
+                    <ColumnConstraints hgrow="ALWAYS"/>
+                </columnConstraints>
+
+                <Label text="Email *" styleClass="form-label" GridPane.rowIndex="0"/>
+                <VBox spacing="3" GridPane.rowIndex="0" GridPane.columnIndex="1">
+                    <TextField fx:id="emailField" promptText="operator@cyberclub.local"/>
+                    <Label styleClass="hint" text="Логин для входа. Уникален."/>
+                </VBox>
+
+                <Label text="Имя *" styleClass="form-label" GridPane.rowIndex="1"/>
+                <TextField fx:id="nameField" promptText="Иван Петров" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                <Label text="Роль *" styleClass="form-label" GridPane.rowIndex="2"/>
+                <VBox spacing="3" GridPane.rowIndex="2" GridPane.columnIndex="1">
+                    <ComboBox fx:id="roleCombo" maxWidth="Infinity" promptText="Выберите роль"/>
+                    <Label fx:id="roleHint" styleClass="hint" wrapText="true"/>
+                </VBox>
+
+                <Label text="Пароль *" styleClass="form-label" GridPane.rowIndex="3"/>
+                <VBox spacing="3" GridPane.rowIndex="3" GridPane.columnIndex="1">
+                    <PasswordField fx:id="passwordField"/>
+                    <Label styleClass="hint" text="От 8 символов, буквы и цифры, без пробелов и без имени из email."/>
+                </VBox>
+
+                <Label text="Повтор пароля *" styleClass="form-label" GridPane.rowIndex="4"/>
+                <PasswordField fx:id="passwordRepeatField" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+            </GridPane>
+            <Label fx:id="errorLabel" styleClass="error-label" wrapText="true" maxWidth="Infinity"
+                   visible="false" managed="false"/>
+        </VBox>
+    </content>
+</DialogPane>

@@ -28,8 +28,6 @@ public class MainController {
     @FXML
     private Tab statisticsTab;
     @FXML
-    private Tab chatTab;
-    @FXML
     private Label dbLabel;
 
     @FXML
@@ -40,8 +38,6 @@ public class MainController {
     private StationsController stationsController;
     @FXML
     private StatisticsController statisticsController;
-    @FXML
-    private ChatController chatController;
 
     private final AppContext context;
 
@@ -80,9 +76,6 @@ public class MainController {
         }
         if (tab == statisticsTab) {
             return statisticsController;
-        }
-        if (tab == chatTab) {
-            return chatController;
         }
         return null;
     }

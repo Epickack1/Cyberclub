@@ -8,6 +8,13 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import ru.mirea.cyberclub.db.DatabaseManager;
 import ru.mirea.cyberclub.exception.AppException;
+import ru.mirea.cyberclub.repository.BookingRepository;
+import ru.mirea.cyberclub.repository.ClientRepository;
+import ru.mirea.cyberclub.repository.StationRepository;
+import ru.mirea.cyberclub.repository.jdbc.JdbcBookingRepository;
+import ru.mirea.cyberclub.repository.jdbc.JdbcClientRepository;
+import ru.mirea.cyberclub.repository.jdbc.JdbcStationRepository;
+import ru.mirea.cyberclub.repository.jdbc.JdbcStatisticsRepository;
 import ru.mirea.cyberclub.service.BookingService;
 import ru.mirea.cyberclub.service.ClientService;
 import ru.mirea.cyberclub.service.ExportService;
@@ -21,10 +28,6 @@ import ru.mirea.cyberclub.service.StatisticsService;
  * FXML (View) → Controller → Service (бизнес-правила) → Repository/DAO (SQL) → PostgreSQL
  * </pre>
  *
- * Сервисы при этом живут в {@link AppServices} — контейнере без JavaFX, которым же пользуется
- * MCP-сервер. Здесь же добавлено то, чего у {@link AppServices} нет: загрузка FXML и создание
- * контроллеров.
- *
  * Контроллеры создаёт {@link FXMLLoader} через {@link #createController(Class)}:
  * если у контроллера есть конструктор {@code (AppContext)}, в него передаётся этот объект.
  */
@@ -32,10 +35,23 @@ public class AppContext {
 
     private static final String VIEW_DIR = "/ru/mirea/cyberclub/ui/view/";
 
-    private final AppServices services;
+    private final DatabaseManager db;
+    private final ClientService clientService;
+    private final StationService stationService;
+    private final BookingService bookingService;
+    private final StatisticsService statisticsService;
+    private final ExportService exportService;
 
     public AppContext(DatabaseManager db) {
-        this.services = new AppServices(db);
+        this.db = db;
+        ClientRepository clients = new JdbcClientRepository(db);
+        StationRepository stations = new JdbcStationRepository(db);
+        BookingRepository bookings = new JdbcBookingRepository(db);
+        this.clientService = new ClientService(clients, bookings);
+        this.stationService = new StationService(stations, bookings);
+        this.bookingService = new BookingService(bookings, clients, stations);
+        this.statisticsService = new StatisticsService(new JdbcStatisticsRepository(db));
+        this.exportService = new ExportService(statisticsService);
     }
 
     /** Результат загрузки FXML: корневой узел и его контроллер. */
@@ -74,26 +90,26 @@ public class AppContext {
     }
 
     public DatabaseManager db() {
-        return services.db();
+        return db;
     }
 
     public ClientService clients() {
-        return services.clients();
+        return clientService;
     }
 
     public StationService stations() {
-        return services.stations();
+        return stationService;
     }
 
     public BookingService bookings() {
-        return services.bookings();
+        return bookingService;
     }
 
     public StatisticsService statistics() {
-        return services.statistics();
+        return statisticsService;
     }
 
     public ExportService export() {
-        return services.export();
+        return exportService;
     }
 }

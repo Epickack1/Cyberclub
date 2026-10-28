@@ -3,6 +3,7 @@ package ru.mirea.cyberclub.backend.domain;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import org.hibernate.annotations.Generated;
 
@@ -11,8 +12,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -21,18 +20,15 @@ import jakarta.persistence.Table;
 /**
  * Бронирование игрового места — основная сущность системы.
  *
- * <p>Идентификатор — обычный {@code bigint}, как и в схеме десктопного приложения КР2:
- * обе программы работают с одной базой, поэтому тип ключа обязан совпадать. Для людей
- * есть отдельный номер брони ({@code number}), который выдаёт PostgreSQL. Обычное
- * удаление заменено архивированием.</p>
+ * <p>Идентификатор — UUID, для людей есть отдельный номер брони ({@code number}),
+ * который выдаёт PostgreSQL. Обычное удаление заменено архивированием.</p>
  */
 @Entity
 @Table(name = "bookings")
 public class Booking extends AuditedVersionedEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private UUID id;
 
     /** Номер брони (#1, #2, ...). Генерирует база, Hibernate читает его после вставки. */
     @Generated
@@ -75,12 +71,13 @@ public class Booking extends AuditedVersionedEntity {
     protected Booking() {
     }
 
-    public Booking(Client client, Station station) {
+    public Booking(UUID id, Client client, Station station) {
+        this.id = id;
         this.client = client;
         this.station = station;
     }
 
-    public Long getId() { return id; }
+    public UUID getId() { return id; }
     public Long getNumber() { return number; }
     public Client getClient() { return client; }
     public void setClient(Client client) { this.client = client; }

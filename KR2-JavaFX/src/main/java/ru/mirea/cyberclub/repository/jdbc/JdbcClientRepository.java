@@ -105,8 +105,6 @@ public class JdbcClientRepository extends AbstractJdbcRepository implements Clie
                 rs.getString("phone"),
                 rs.getString("email"),
                 rs.getObject("birth_date", LocalDate.class),
-                // getObject(LocalDateTime.class) падает на TIMESTAMPTZ, а общая с КР3 база
-                // хранит created_at именно так. Timestamp читается в обоих вариантах схемы.
-                rs.getTimestamp("created_at").toLocalDateTime());
+                rs.getObject("created_at", LocalDateTime.class));
     }
 }

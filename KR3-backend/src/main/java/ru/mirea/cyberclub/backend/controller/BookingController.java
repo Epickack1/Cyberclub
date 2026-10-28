@@ -2,6 +2,7 @@ package ru.mirea.cyberclub.backend.controller;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -68,8 +69,8 @@ public class BookingController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Карточка брони по идентификатору")
-    public BookingResponse get(@PathVariable Long id) {
+    @Operation(summary = "Карточка брони по UUID")
+    public BookingResponse get(@PathVariable UUID id) {
         return bookings.get(id);
     }
 
@@ -87,25 +88,25 @@ public class BookingController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Изменить бронь (нужен актуальный version)")
-    public BookingResponse update(@PathVariable Long id, @Valid @RequestBody BookingRequest request) {
+    public BookingResponse update(@PathVariable UUID id, @Valid @RequestBody BookingRequest request) {
         return bookings.update(id, request);
     }
 
     @PostMapping("/{id}/status")
     @Operation(summary = "Сменить статус по допустимой схеме")
-    public BookingResponse changeStatus(@PathVariable Long id, @Valid @RequestBody StatusRequest request) {
+    public BookingResponse changeStatus(@PathVariable UUID id, @Valid @RequestBody StatusRequest request) {
         return bookings.changeStatus(id, request);
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Убрать в архив (вместо удаления)")
-    public BookingResponse archive(@PathVariable Long id) {
+    public BookingResponse archive(@PathVariable UUID id) {
         return bookings.archive(id);
     }
 
     @PostMapping("/{id}/restore")
     @Operation(summary = "Восстановить из архива")
-    public BookingResponse restore(@PathVariable Long id) {
+    public BookingResponse restore(@PathVariable UUID id) {
         return bookings.restore(id);
     }
 
@@ -113,7 +114,7 @@ public class BookingController {
     @Operation(summary = "Удалить окончательно",
             description = "Работает только при PERMANENT_DELETE_ENABLED=true и заголовке X-Confirm-Delete: PERMANENTLY_DELETE.")
     public ResponseEntity<Void> permanentDelete(
-            @PathVariable Long id,
+            @PathVariable UUID id,
             @RequestHeader(name = "X-Confirm-Delete", required = false) String confirmation) {
         bookings.permanentDelete(id, confirmation);
         return ResponseEntity.noContent().build();

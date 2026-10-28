@@ -3,6 +3,7 @@ package ru.mirea.cyberclub.backend.service;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -31,8 +32,8 @@ import ru.mirea.cyberclub.backend.repository.StationRepository;
 /** Бронирования: создание, изменение, статусы, архив. Стоимость считает только сервер. */
 @Service
 public class BookingService {
-    /** Подставляется вместо "исключить бронь" при создании: записи с id 0 не бывает. */
-    private static final long NIL = 0L;
+    /** Подставляется вместо "исключить бронь" при создании: такого UUID в базе не бывает. */
+    private static final UUID NIL = new UUID(0, 0);
 
     private final BookingRepository bookings;
     private final ClientRepository clients;
@@ -57,7 +58,7 @@ public class BookingService {
     }
 
     @Transactional(readOnly = true)
-    public BookingResponse get(Long id) {
+    public BookingResponse get(UUID id) {
         return mapper.toResponse(require(id));
     }
 
@@ -76,7 +77,7 @@ public class BookingService {
         checkOverlap(station, r.startTime(), r.endTime(), NIL);
         BookingRules.checkAgeRestrictions(client, station, r.startTime(), r.endTime());
 
-        Booking booking = new Booking(client, station);
+        Booking booking = new Booking(UUID.randomUUID(), client, station);
         booking.setStartTime(r.startTime());
         booking.setEndTime(r.endTime());
         booking.setComment(blankToNull(r.comment()));
@@ -87,7 +88,7 @@ public class BookingService {
 
     /** Место, время, комментарий и оплату можно менять только у брони в статусе "Создано" или "Подтверждено". */
     @Transactional
-    public BookingResponse update(Long id, BookingRequest r) {
+    public BookingResponse update(UUID id, BookingRequest r) {
         Booking booking = require(id);
         Versions.check(r.version(), booking.getVersion());
         requireEditable(booking);
@@ -112,7 +113,7 @@ public class BookingService {
 
     /** Переход статуса только по схеме CREATED -> CONFIRMED -> ACTIVE -> COMPLETED (или отмена). */
     @Transactional
-    public BookingResponse changeStatus(Long id, StatusRequest r) {
+    public BookingResponse changeStatus(UUID id, StatusRequest r) {
         Booking booking = require(id);
         Versions.check(r.version(), booking.getVersion());
         requireNotArchived(booking);
@@ -130,7 +131,7 @@ public class BookingService {
 
     /** Обычное удаление — архивирование. Активную бронь в архив не убрать: сначала её надо завершить. */
     @Transactional
-    public BookingResponse archive(Long id) {
+    public BookingResponse archive(UUID id) {
         Booking booking = require(id);
         if (booking.isArchived()) {
             throw new BusinessRuleException("Бронирование #" + booking.getNumber() + " уже в архиве.");
@@ -144,7 +145,7 @@ public class BookingService {
 
     /** Восстановление из архива, если за это время место не заняли другой бронью. */
     @Transactional
-    public BookingResponse restore(Long id) {
+    public BookingResponse restore(UUID id) {
         Booking booking = require(id);
         if (!booking.isArchived()) {
             throw new BusinessRuleException("Бронирование #" + booking.getNumber() + " не в архиве.");
@@ -158,7 +159,7 @@ public class BookingService {
 
     /** Окончательное удаление: включается настройкой и требует явного подтверждения заголовком. */
     @Transactional
-    public void permanentDelete(Long id, String confirmation) {
+    public void permanentDelete(UUID id, String confirmation) {
         if (!properties.permanentDeleteEnabled()) {
             throw new BusinessRuleException("Окончательное удаление отключено настройкой сервера.");
         }
@@ -168,7 +169,7 @@ public class BookingService {
         bookings.delete(require(id));
     }
 
-    private Booking require(Long id) {
+    private Booking require(UUID id) {
         return bookings.findById(id).orElseThrow(() -> new NotFoundException("Бронирование " + id + " не найдено."));
     }
 
@@ -196,7 +197,7 @@ public class BookingService {
     }
 
     /** Одно место — одна действующая бронь на любой момент времени. */
-    private void checkOverlap(Station station, LocalDateTime start, LocalDateTime end, Long excludeId) {
+    private void checkOverlap(Station station, LocalDateTime start, LocalDateTime end, UUID excludeId) {
         List<Booking> conflicts = bookings.findOverlapping(station.getId(), start, end, excludeId);
         if (!conflicts.isEmpty()) {
             Booking other = conflicts.get(0);

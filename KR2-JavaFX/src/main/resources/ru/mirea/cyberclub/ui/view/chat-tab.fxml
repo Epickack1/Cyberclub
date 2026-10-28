@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Pos?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<!--
+    Вкладка «ИИ-ассистент»: диалог с моделью через OpenRouter.
+    Реплики добавляются контроллером в messagesBox, а не описываются здесь разметкой,
+    потому что их количество заранее неизвестно.
+-->
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="ru.mirea.cyberclub.ui.controller.ChatController"
+            styleClass="tab-content">
+    <top>
+        <VBox spacing="6">
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="ИИ-ассистент" styleClass="page-title"/>
+                <Label text="OpenRouter" styleClass="muted"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="modelLabel" styleClass="muted"/>
+                <Button text="Очистить диалог" onAction="#onClear"/>
+            </HBox>
+            <Label fx:id="hintLabel" styleClass="hint" wrapText="true"/>
+        </VBox>
+    </top>
+
+    <center>
+        <ScrollPane fx:id="scroll" fitToWidth="true" hbarPolicy="NEVER" styleClass="chat-scroll">
+            <VBox fx:id="messagesBox" spacing="10" styleClass="chat-messages"/>
+        </ScrollPane>
+    </center>
+
+    <bottom>
+        <VBox spacing="6" styleClass="chat-input-bar">
+            <Label fx:id="errorLabel" styleClass="error-text" wrapText="true"
+                   visible="false" managed="false"/>
+            <HBox spacing="10" alignment="TOP_CENTER">
+                <TextArea fx:id="input" promptText="Спросите о бронях, клиентах, игровых местах…"
+                          wrapText="true" prefRowCount="3" HBox.hgrow="ALWAYS" styleClass="chat-input"/>
+                <Button fx:id="sendButton" text="Отправить" styleClass="primary-button"
+                        onAction="#onSend" alignment="CENTER"/>
+            </HBox>
+            <Label text="Enter — отправить · Shift+Enter — новая строка · ответы модели могут содержать ошибки"
+                   styleClass="muted"/>
+        </VBox>
+    </bottom>
+</BorderPane>

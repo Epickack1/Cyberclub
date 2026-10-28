@@ -2,9 +2,11 @@ spring:
   application:
     name: cyberclub-backend
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:55433/cyberclub}
-    username: ${SPRING_DATASOURCE_USERNAME:cyberclub_app}
-    password: ${SPRING_DATASOURCE_PASSWORD:}
+    # По умолчанию — та же база, что у десктопного приложения КР2,
+    # иначе ИИ через REST менял бы данные, которых не видно в окне программы.
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/cyberclub}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     hikari:
       maximum-pool-size: 10
       connection-timeout: 5000
@@ -15,6 +17,11 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+    # На базе, которую раньше создало приложение КР2, истории Flyway нет.
+    # V1 (схема) и V2 (демо-данные) считаются уже применёнными — таблицы и данные
+    # на месте, — а V3 доводит схему до требований КР3.
+    baseline-on-migrate: true
+    baseline-version: 2
   jackson:
     default-property-inclusion: non_null
     deserialization:

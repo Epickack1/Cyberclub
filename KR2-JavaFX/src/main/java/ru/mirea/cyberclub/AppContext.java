@@ -8,7 +8,23 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import ru.mirea.cyberclub.db.DatabaseManager;
 import ru.mirea.cyberclub.exception.AppException;
+import ru.mirea.cyberclub.repository.BookingRepository;
+import ru.mirea.cyberclub.repository.ClientRepository;
+import ru.mirea.cyberclub.repository.StationRepository;
+import ru.mirea.cyberclub.repository.StatisticsRepository;
+import ru.mirea.cyberclub.repository.jdbc.JdbcBookingRepository;
+import ru.mirea.cyberclub.repository.jdbc.JdbcClientRepository;
+import ru.mirea.cyberclub.repository.jdbc.JdbcStationRepository;
+import ru.mirea.cyberclub.repository.jdbc.JdbcStatisticsRepository;
+import ru.mirea.cyberclub.repository.rest.RestBookingRepository;
+import ru.mirea.cyberclub.repository.rest.RestClient;
+import ru.mirea.cyberclub.repository.rest.RestClientRepository;
+import ru.mirea.cyberclub.repository.rest.RestStationRepository;
+import ru.mirea.cyberclub.repository.rest.RestStatisticsRepository;
+import ru.mirea.cyberclub.auth.AuthApiClient;
+import ru.mirea.cyberclub.service.AuthService;
 import ru.mirea.cyberclub.service.BookingService;
+import ru.mirea.cyberclub.service.UserAdminService;
 import ru.mirea.cyberclub.service.ClientService;
 import ru.mirea.cyberclub.service.ExportService;
 import ru.mirea.cyberclub.service.StationService;
@@ -21,21 +37,45 @@ import ru.mirea.cyberclub.service.StatisticsService;
  * FXML (View) → Controller → Service (бизнес-правила) → Repository/DAO (SQL) → PostgreSQL
  * </pre>
  *
- * Сервисы при этом живут в {@link AppServices} — контейнере без JavaFX, которым же пользуется
- * MCP-сервер. Здесь же добавлено то, чего у {@link AppServices} нет: загрузка FXML и создание
- * контроллеров.
- *
  * Контроллеры создаёт {@link FXMLLoader} через {@link #createController(Class)}:
  * если у контроллера есть конструктор {@code (AppContext)}, в него передаётся этот объект.
+ *
+ * <p>MCP-сервер JavaFX не использует: он собирает сервисы в {@link AppServices}, без окна и FXML.
+ * Здесь же — окно, режим JDBC или REST и вход сотрудников.</p>
  */
 public class AppContext {
 
     private static final String VIEW_DIR = "/ru/mirea/cyberclub/ui/view/";
 
-    private final AppServices services;
+    private final String dataSource;
+    private final ClientService clientService;
+    private final StationService stationService;
+    private final BookingService bookingService;
+    private final StatisticsService statisticsService;
+    private final ExportService exportService;
 
-    public AppContext(DatabaseManager db) {
-        this.services = new AppServices(db);
+    /** Работа с базой КР1 напрямую через JDBC. */
+    public static AppContext jdbc(DatabaseManager db) {
+        return new AppContext("PostgreSQL (JDBC): " + db.describe(),
+                new JdbcClientRepository(db), new JdbcStationRepository(db),
+                new JdbcBookingRepository(db), new JdbcStatisticsRepository(db));
+    }
+
+    /** Работа через REST API (cyberclub-backend); database — база сервера из /actuator/health. */
+    public static AppContext rest(RestClient rest, String database) {
+        return new AppContext("REST API: " + rest.baseUrl() + (database.isBlank() ? "" : " → " + database),
+                new RestClientRepository(rest), new RestStationRepository(rest),
+                new RestBookingRepository(rest), new RestStatisticsRepository(rest));
+    }
+
+    private AppContext(String dataSource, ClientRepository clients, StationRepository stations,
+                       BookingRepository bookings, StatisticsRepository statistics) {
+        this.dataSource = dataSource;
+        this.clientService = new ClientService(clients, bookings);
+        this.stationService = new StationService(stations, bookings);
+        this.bookingService = new BookingService(bookings, clients, stations);
+        this.statisticsService = new StatisticsService(statistics);
+        this.exportService = new ExportService(statisticsService);
     }
 
     /** Результат загрузки FXML: корневой узел и его контроллер. */
@@ -73,27 +113,65 @@ public class AppContext {
         }
     }
 
-    public DatabaseManager db() {
-        return services.db();
+    /** Откуда берутся данные — для строки состояния и окна «О программе» (без пароля). */
+    public String dataSource() {
+        return dataSource;
     }
 
     public ClientService clients() {
-        return services.clients();
+        return clientService;
     }
 
     public StationService stations() {
-        return services.stations();
+        return stationService;
     }
 
     public BookingService bookings() {
-        return services.bookings();
+        return bookingService;
     }
 
     public StatisticsService statistics() {
-        return services.statistics();
+        return statisticsService;
     }
 
     public ExportService export() {
-        return services.export();
+        return exportService;
+    }
+
+    // ------------------------------------------------------- вход сотрудников
+
+    private AuthService authService;
+    private UserAdminService userAdminService;
+    private Runnable onLogout = () -> { };
+
+    /** Включает вход через сервер КР3: окно входа при запуске и вкладку «Пользователи» для ADMIN. */
+    public void enableAuth(AuthApiClient client) {
+        this.authService = new AuthService(client);
+        this.userAdminService = new UserAdminService(client, authService);
+    }
+
+    /** Вход включён (auth.enabled=true). Если выключен — приложение работает без входа, как в КР2. */
+    public boolean authEnabled() {
+        return authService != null;
+    }
+
+    public AuthService auth() {
+        return authService;
+    }
+
+    public UserAdminService users() {
+        return userAdminService;
+    }
+
+    /** Что делать по кнопке «Выйти»: приложение снова показывает окно входа. */
+    public void setOnLogout(Runnable onLogout) {
+        this.onLogout = onLogout;
+    }
+
+    public void logout() {
+        if (authService != null) {
+            authService.logout();
+        }
+        onLogout.run();
     }
 }

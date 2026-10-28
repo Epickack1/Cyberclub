@@ -13,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -28,7 +29,8 @@ import ru.mirea.cyberclub.backend.dto.ApiError;
 
 /**
  * Превращает исключения в единый JSON {@link ApiError} с правильным HTTP-кодом:
- * 400 — неверные данные, 404 — нет записи, 409 — конфликт версии или данных.
+ * 400 — неверные данные, 401 — нужен вход, 403 — не хватает прав, 404 — нет записи,
+ * 409 — конфликт версии или данных, 423 — вход временно заблокирован.
  * Stack trace остаётся только в журнале сервера.
  */
 @RestControllerAdvice
@@ -78,6 +80,22 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ApiError> conflict(ConflictException ex, HttpServletRequest request) {
         return build(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ApiError> unauthorized(UnauthorizedException ex, HttpServletRequest request) {
+        return build(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", ex.getMessage(), request, Map.of());
+    }
+
+    @ExceptionHandler(AccountLockedException.class)
+    public ResponseEntity<ApiError> locked(AccountLockedException ex, HttpServletRequest request) {
+        return build(HttpStatus.LOCKED, "ACCOUNT_LOCKED", ex.getMessage(), request, Map.of());
+    }
+
+    /** Отказ проверки прав внутри контроллера/сервиса (без этого обработчика стал бы 500). */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiError> accessDenied(AccessDeniedException ex, HttpServletRequest request) {
+        return build(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "Недостаточно прав для этой операции.", request, Map.of());
     }
 
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)

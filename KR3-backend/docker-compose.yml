@@ -47,6 +47,12 @@ services:
       PERMANENT_DELETE_ENABLED: ${PERMANENT_DELETE_ENABLED:-false}
       APP_TIME_ZONE: ${APP_TIME_ZONE:-Europe/Moscow}
       TZ: ${APP_TIME_ZONE:-Europe/Moscow}
+      JWT_SECRET_BASE64: ${JWT_SECRET_BASE64:-}
+      ACCESS_TOKEN_MINUTES: ${ACCESS_TOKEN_MINUTES:-15}
+      REFRESH_TOKEN_DAYS: ${REFRESH_TOKEN_DAYS:-14}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_NAME:-Администратор клуба}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
     volumes:
       # Исходники только для чтения: контейнер проект не меняет.
       - ./pom.xml:/workspace/pom.xml:ro

@@ -1,6 +1,7 @@
 package ru.mirea.cyberclub.backend.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -15,6 +16,9 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
     boolean existsByPhoneAndIdNot(String phone, Long id);
 
     boolean existsByEmailIgnoreCaseAndIdNot(String email, Long id);
+
+    /** Карточка клиента по email — к ней привязывается учётная запись с ролью CLIENT. */
+    Optional<Client> findByEmailIgnoreCase(String email);
 
     /** Поиск по нику, ФИО, телефону или email. Строка передаётся параметром, а не склеивается в запрос. */
     @Query("""

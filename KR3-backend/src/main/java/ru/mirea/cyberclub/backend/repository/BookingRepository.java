@@ -62,4 +62,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID>, JpaSpec
             select s.type, count(b) from Booking b join b.station s
             where b.archived = false group by s.type""")
     List<Object[]> countByStationType();
+
+    @Query("select b.riskLevel, count(b) from Booking b where b.archived = false group by b.riskLevel")
+    List<Object[]> countByRiskLevel();
 }

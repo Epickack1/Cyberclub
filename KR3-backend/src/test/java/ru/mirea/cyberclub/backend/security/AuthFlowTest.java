@@ -21,13 +21,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Сквозная проверка авторизации на H2: первый администратор, регистрация пользователей,
- * права ролей, обновление и отзыв токенов, блокировка после перебора паролей, Swagger.
+ * права ролей, обновление и отзыв токенов, блокировка после перебора паролей, Swagger,
+ * обязательная смена временного пароля, журнал аудита.
+ *
+ * <p>Первый администратор здесь создаётся без требования смены пароля, чтобы не повторять её в каждом
+ * тесте; сам сценарий временного пароля проверяет {@code temporaryPasswordMustBeChangedFirst}.
+ * Помощник {@code createUser} после регистрации «активирует» учётную запись (меняет временный
+ * пароль и возвращает прежний), чтобы остальные тесты работали с обычными пользователями.</p>
  */
 @SpringBootTest(properties = {
         "app.security.bootstrap-admin-email=Admin@CyberClub.local",
         "app.security.bootstrap-admin-password=Club2026root",
         "app.security.max-failed-logins=3",
-        "app.security.lock-minutes=15"
+        "app.security.lock-minutes=15",
+        "app.security.bootstrap-admin-must-change-password=false"
 })
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -99,9 +106,10 @@ class AuthFlowTest {
         mvc.perform(auth(post("/api/stations"), operator).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isForbidden());
 
-        mvc.perform(auth(get("/api/admin/users"), admin))
+        mvc.perform(auth(get("/api/admin/users").param("q", "viewer1").param("size", "5"), admin))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.email == 'viewer1@cyberclub.local')]").exists());
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].email").value("viewer1@cyberclub.local"));
     }
 
     @Test
@@ -226,6 +234,76 @@ class AuthFlowTest {
                 .andExpect(jsonPath("$.code").value("BUSINESS_RULE"));
     }
 
+    @Test
+    void temporaryPasswordMustBeChangedFirst() throws Exception {
+        JsonNode admin = login(ADMIN_EMAIL, ADMIN_PASSWORD);
+        String body = json.writeValueAsString(java.util.Map.of("email", "newbie@cyberclub.local",
+                "displayName", "Новичок", "password", "Temp2026pass", "roles", java.util.List.of("OPERATOR")));
+        JsonNode created = new JsonResult(mvc.perform(auth(post("/api/admin/users"), admin)
+                        .contentType(MediaType.APPLICATION_JSON).content(body)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.mustChangePassword").value(true))
+                .andReturnJson();
+        String id = created.path("id").asText();
+        // версия из ответа на создание сразу годится для PUT (иначе первый же PUT получил бы 409)
+        mvc.perform(auth(get("/api/admin/users/" + id), admin))
+                .andExpect(jsonPath("$.version").value(created.path("version").asLong()));
+
+        JsonNode newbie = login("newbie@cyberclub.local", "Temp2026pass");
+        assertThat(newbie.path("user").path("mustChangePassword").asBoolean()).isTrue();
+        mvc.perform(auth(get("/api/clients"), newbie))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("PASSWORD_CHANGE_REQUIRED"));
+        mvc.perform(auth(get("/api/auth/me"), newbie)).andExpect(status().isOk());
+        changePassword(newbie, "Temp2026pass", "Temp2026pass").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.validationErrors.newPassword").exists());
+        changePassword(newbie, "Temp2026pass", "Smena2026work").andExpect(status().isNoContent());
+        mvc.perform(auth(get("/api/clients"), newbie)).andExpect(status().isOk());
+
+        // сброс администратором: сервер сам создаёт временный пароль и снова требует смену
+        String temporary = new JsonResult(mvc.perform(auth(post("/api/admin/users/" + id + "/reset-password"), admin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.mustChangePassword").value(true))
+                .andReturnJson().path("temporaryPassword").asText();
+        assertThat(temporary).hasSize(12);
+        loginRequest("newbie@cyberclub.local", "Smena2026work").andExpect(status().isUnauthorized());
+        JsonNode again = login("newbie@cyberclub.local", temporary);
+        mvc.perform(auth(get("/api/bookings"), again)).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminUpdatesUserAndAuditRecordsIt() throws Exception {
+        JsonNode admin = login(ADMIN_EMAIL, ADMIN_PASSWORD);
+        JsonNode created = createUser(admin, "rename@cyberclub.local", "Club2026name", "VIEWER")
+                .andExpect(status().isCreated()).andReturnJson();
+        String id = created.path("id").asText();
+        // версия после активации (смена пароля тоже меняет запись)
+        long version = new JsonResult(mvc.perform(auth(get("/api/admin/users/" + id), admin)))
+                .andExpect(status().isOk()).andReturnJson().path("version").asLong();
+        String update = json.writeValueAsString(java.util.Map.of("email", "renamed@cyberclub.local",
+                "displayName", "Переименованный", "roles", java.util.List.of("OPERATOR"), "enabled", true, "version", version));
+        mvc.perform(auth(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/admin/users/" + id), admin)
+                        .contentType(MediaType.APPLICATION_JSON).content(update))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("renamed@cyberclub.local"))
+                .andExpect(jsonPath("$.roles[0]").value("OPERATOR"));
+        // повтор со старой версией — конфликт
+        mvc.perform(auth(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/admin/users/" + id), admin)
+                        .contentType(MediaType.APPLICATION_JSON).content(update))
+                .andExpect(status().isConflict());
+        loginRequest("rename@cyberclub.local", "Club2026name").andExpect(status().isUnauthorized());
+        JsonNode renamed = login("renamed@cyberclub.local", "Club2026name");
+
+        mvc.perform(auth(get("/api/admin/audit").param("q", "renamed@cyberclub.local"), admin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[?(@.eventType == 'USER_UPDATED')]").exists())
+                .andExpect(jsonPath("$.content[?(@.eventType == 'LOGIN_SUCCESS')]").exists())
+                .andExpect(jsonPath("$.content[0].correlationId").isNotEmpty());
+        mvc.perform(auth(get("/api/admin/audit").param("type", "LOGIN_FAILED"), admin))
+                .andExpect(jsonPath("$.content[?(@.actorEmail == 'rename@cyberclub.local')]").exists());
+        mvc.perform(auth(get("/api/admin/audit"), renamed)).andExpect(status().isForbidden());
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private JsonNode login(String email, String password) throws Exception {
@@ -243,10 +321,22 @@ class AuthFlowTest {
                 .content("{\"refreshToken\":\"" + refreshToken + "\"}")));
     }
 
+    /** Регистрирует пользователя; при успехе сразу снимает требование смены временного пароля. */
     private JsonResult createUser(JsonNode as, String email, String password, String role) throws Exception {
         String body = json.writeValueAsString(java.util.Map.of(
                 "email", email, "displayName", "Тестовый " + role, "password", password, "roles", java.util.List.of(role)));
-        return new JsonResult(mvc.perform(auth(post("/api/admin/users"), as)
+        ResultActions actions = mvc.perform(auth(post("/api/admin/users"), as)
+                .contentType(MediaType.APPLICATION_JSON).content(body));
+        if (actions.andReturn().getResponse().getStatus() == 201) {
+            changePassword(login(email, password), password, password + "Z").andExpect(status().isNoContent());
+            changePassword(login(email, password + "Z"), password + "Z", password).andExpect(status().isNoContent());
+        }
+        return new JsonResult(actions);
+    }
+
+    private JsonResult changePassword(JsonNode tokens, String current, String next) throws Exception {
+        String body = json.writeValueAsString(java.util.Map.of("currentPassword", current, "newPassword", next));
+        return new JsonResult(mvc.perform(auth(post("/api/auth/password"), tokens)
                 .contentType(MediaType.APPLICATION_JSON).content(body)));
     }
 

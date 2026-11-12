@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CyberClub — бронирования</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23FF8C00'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-size='16' font-family='Arial' font-weight='bold' fill='%234B0082'%3ECC%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Вход -->
+  <section id="login-screen" class="login-screen hidden">
+    <form id="login-form" class="card login-card stack" autocomplete="on">
+      <h1>CyberClub</h1>
+      <p class="muted">Вход для клиентов и сотрудников клуба</p>
+      <label>Email <input name="email" type="email" required autocomplete="username" maxlength="100"></label>
+      <label>Пароль <input name="password" type="password" required autocomplete="current-password" maxlength="128"></label>
+      <div id="login-error" class="error-box hidden"></div>
+      <button class="primary" type="submit">Войти</button>
+      <p>Нет аккаунта? <button type="button" class="link" id="show-register">Зарегистрироваться</button></p>
+      <p class="small muted">API: <a href="swagger-ui.html" target="_blank" rel="noopener">Swagger</a> ·
+        <span id="login-health">проверка сервера…</span></p>
+    </form>
+  </section>
+
+  <!-- Регистрация клиента -->
+  <section id="register-screen" class="login-screen hidden">
+    <form id="register-form" class="card login-card stack" autocomplete="on" style="width:min(460px,92vw)">
+      <h1>Регистрация</h1>
+      <p class="muted">Станьте клиентом клуба и бронируйте места онлайн. Оплата — на стойке, её подтвердит администратор.</p>
+      <div class="grid2">
+        <label>Ник * <input name="nickname" required pattern="[A-Za-z0-9_]{3,20}" maxlength="20" placeholder="Gamer_77" autocomplete="nickname"></label>
+        <label>Дата рождения * <input name="birthDate" type="date" required autocomplete="bday"></label>
+      </div>
+      <label>ФИО * <input name="fullName" required maxlength="100" autocomplete="name"></label>
+      <div class="grid2">
+        <label>Телефон * <input name="phone" required pattern="\+7[0-9]{10}" placeholder="+79991234567" autocomplete="tel"></label>
+        <label>Email * <input name="email" type="email" required maxlength="100" autocomplete="email"></label>
+      </div>
+      <div class="grid2">
+        <label>Пароль * <input name="password" type="password" required minlength="8" maxlength="128" autocomplete="new-password"></label>
+        <label>Повтор пароля * <input name="repeat" type="password" required autocomplete="new-password"></label>
+      </div>
+      <p class="small muted">Ник: латиница, цифры и «_». Пароль: от 8 символов, буквы и цифры, без имени из email. Клиентам от 12 лет; VIP, буткемп и ночное время — с 18.</p>
+      <div id="register-error" class="error-box hidden"></div>
+      <button class="primary" type="submit">Зарегистрироваться</button>
+      <p>Уже есть аккаунт? <button type="button" class="link" id="show-login">Войти</button></p>
+    </form>
+  </section>
+
+  <!-- Обязательная смена временного пароля -->
+  <section id="password-screen" class="login-screen hidden">
+    <form id="password-form" class="card login-card stack">
+      <h1>Смена пароля</h1>
+      <p class="muted" id="password-reason">Пароль временный: задайте свой, чтобы продолжить.</p>
+      <label>Текущий (временный) пароль <input name="currentPassword" type="password" required autocomplete="current-password"></label>
+      <label>Новый пароль <input name="newPassword" type="password" required autocomplete="new-password"></label>
+      <label>Повтор нового пароля <input name="repeat" type="password" required autocomplete="new-password"></label>
+      <p class="small muted">От 8 символов, буквы и цифры, без пробелов и без имени из email.</p>
+      <div id="password-error" class="error-box hidden"></div>
+      <div class="row">
+        <button class="primary grow" type="submit">Сменить пароль</button>
+        <button type="button" id="password-cancel">Выйти</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Приложение -->
+  <div id="app" class="hidden">
+    <header class="top">
+      <div class="logo">CyberClub</div>
+      <nav id="nav"></nav>
+      <div class="user">
+        <div>
+          <div id="user-name"></div>
+          <div class="role" id="user-role"></div>
+        </div>
+        <button id="theme-toggle" class="icon" title="Светлая / тёмная тема">◐</button>
+        <button id="change-password-btn">Пароль</button>
+        <button id="logout-btn">Выйти</button>
+      </div>
+    </header>
+    <main id="view"></main>
+    <footer>CyberClub · КР3 · <span id="health"></span> · <a href="swagger-ui.html" target="_blank" rel="noopener">Swagger</a></footer>
+  </div>
+
+  <div id="overlay-root"></div>
+  <script src="app.js"></script>
+</body>
+</html>

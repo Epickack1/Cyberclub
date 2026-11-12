@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import ru.mirea.cyberclub.backend.domain.BookingStatus;
+import ru.mirea.cyberclub.backend.domain.RiskLevel;
 import ru.mirea.cyberclub.backend.domain.StationType;
 import ru.mirea.cyberclub.backend.dto.AnalyticsResponse;
 import ru.mirea.cyberclub.backend.repository.BookingRepository;
@@ -41,6 +42,12 @@ public class AnalyticsService {
         }
         bookings.countByStationType().forEach(row -> byStationType.put(((StationType) row[0]).name(), (Long) row[1]));
 
+        Map<String, Long> byRiskLevel = new LinkedHashMap<>();
+        for (RiskLevel risk : RiskLevel.values()) {
+            byRiskLevel.put(risk.name(), 0L);
+        }
+        bookings.countByRiskLevel().forEach(row -> byRiskLevel.put(((RiskLevel) row[0]).name(), (Long) row[1]));
+
         return new AnalyticsResponse(
                 active + archived,
                 active,
@@ -50,7 +57,8 @@ public class AnalyticsService {
                 bookings.sumPriceByStatus(BookingStatus.COMPLETED),
                 byStatus,
                 toMap(bookings.countByStation()),
-                byStationType);
+                byStationType,
+                byRiskLevel);
     }
 
     private static Map<String, Long> toMap(List<Object[]> rows) {

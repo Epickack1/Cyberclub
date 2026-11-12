@@ -53,6 +53,7 @@ services:
       BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
       BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_NAME:-Администратор клуба}
       BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      BOOTSTRAP_ADMIN_MUST_CHANGE_PASSWORD: ${BOOTSTRAP_ADMIN_MUST_CHANGE_PASSWORD:-true}
     volumes:
       # Исходники только для чтения: контейнер проект не меняет.
       - ./pom.xml:/workspace/pom.xml:ro

@@ -15,6 +15,11 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+  servlet:
+    multipart:
+      # Импорт CSV: файл до 2 МБ (сервис дополнительно ограничивает 5000 строк).
+      max-file-size: 2MB
+      max-request-size: 3MB
   jackson:
     default-property-inclusion: non_null
     deserialization:
@@ -60,3 +65,5 @@ app:
     bootstrap-admin-email: ${BOOTSTRAP_ADMIN_EMAIL:}
     bootstrap-admin-name: ${BOOTSTRAP_ADMIN_NAME:Администратор клуба}
     bootstrap-admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+    # Пароль из .env временный: при первом входе администратор обязан его сменить.
+    bootstrap-admin-must-change-password: ${BOOTSTRAP_ADMIN_MUST_CHANGE_PASSWORD:true}

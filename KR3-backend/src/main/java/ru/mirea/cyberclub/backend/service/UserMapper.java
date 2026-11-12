@@ -14,6 +14,6 @@ final class UserMapper {
         boolean locked = user.isLocked(now);
         return new UserResponse(user.getId(), user.getEmail(), user.getDisplayName(), user.getRoles(),
                 user.getClientId(), user.isEnabled(), locked, locked ? user.getLockedUntil() : null, user.getLastLoginAt(),
-                user.getCreatedAt());
+                user.getCreatedAt(), user.isMustChangePassword(), user.getVersion());
     }
 }

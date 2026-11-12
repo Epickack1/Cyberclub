@@ -53,6 +53,10 @@ public class UserAccount extends AuditedVersionedEntity {
     @Column(name = "client_id")
     private Long clientId;
 
+    /** Пароль временный (выдан администратором): до его смены доступны только вход и смена пароля. */
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "app_user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Enumerated(EnumType.STRING)
@@ -117,6 +121,9 @@ public class UserAccount extends AuditedVersionedEntity {
     public Instant getLastLoginAt() { return lastLoginAt; }
     public Set<Role> getRoles() { return Set.copyOf(roles); }
     public Long getClientId() { return clientId; }
+    public boolean isMustChangePassword() { return mustChangePassword; }
+    public void setMustChangePassword(boolean mustChangePassword) { this.mustChangePassword = mustChangePassword; }
+    public void setEmail(String email) { this.email = normalizeEmail(email); }
     public void setClientId(Long clientId) { this.clientId = clientId; }
 
     public boolean isClient() {

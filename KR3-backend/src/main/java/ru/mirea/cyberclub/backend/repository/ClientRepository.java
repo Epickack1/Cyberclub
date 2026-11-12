@@ -20,6 +20,8 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
     /** Карточка клиента по email — к ней привязывается учётная запись с ролью CLIENT. */
     Optional<Client> findByEmailIgnoreCase(String email);
 
+    Optional<Client> findByNicknameIgnoreCase(String nickname);
+
     /** Поиск по нику, ФИО, телефону или email. Строка передаётся параметром, а не склеивается в запрос. */
     @Query("""
             select c from Client c

@@ -14,10 +14,11 @@ import ru.mirea.cyberclub.backend.domain.UserAccount;
  * Вошедший пользователь в SecurityContext (без хеша пароля).
  * В контроллер попадает через {@code @AuthenticationPrincipal CurrentUser user}.
  */
-public record CurrentUser(UUID id, String email, String displayName, Set<Role> roles) {
+public record CurrentUser(UUID id, String email, String displayName, Set<Role> roles, boolean mustChangePassword) {
 
     public static CurrentUser from(UserAccount user) {
-        return new CurrentUser(user.getId(), user.getEmail(), user.getDisplayName(), user.getRoles());
+        return new CurrentUser(user.getId(), user.getEmail(), user.getDisplayName(), user.getRoles(),
+                user.isMustChangePassword());
     }
 
     /** Роли в формате Spring Security: ROLE_ADMIN, ROLE_OPERATOR, ROLE_VIEWER. */

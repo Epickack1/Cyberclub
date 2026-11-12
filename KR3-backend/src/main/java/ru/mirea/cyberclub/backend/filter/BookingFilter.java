@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import ru.mirea.cyberclub.backend.domain.BookingStatus;
+import ru.mirea.cyberclub.backend.domain.RiskLevel;
 import ru.mirea.cyberclub.backend.domain.StationType;
 
 /**
@@ -15,6 +16,8 @@ import ru.mirea.cyberclub.backend.domain.StationType;
  * @param clientId   фильтр по клиенту
  * @param status     фильтр по статусу
  * @param paid       фильтр по логическому признаку "оплачено"
+ * @param riskLevel  фильтр по вычисляемому показателю (риск неоплаты)
+ * @param tag        фильтр по тегу
  * @param archive    активные, архивные или все
  * @param from       начало периода (дата начала брони, включительно)
  * @param to         конец периода (включительно)
@@ -28,6 +31,8 @@ public record BookingFilter(
         Long clientId,
         BookingStatus status,
         Boolean paid,
+        RiskLevel riskLevel,
+        String tag,
         ArchiveScope archive,
         LocalDate from,
         LocalDate to,

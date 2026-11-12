@@ -58,8 +58,11 @@ public class BootstrapAdmin implements ApplicationRunner {
             log.error("Первый администратор не создан: BOOTSTRAP_ADMIN_PASSWORD не подходит — {}", ex.getMessage());
             return;
         }
-        UserAccount admin = users.save(new UserAccount(email, properties.bootstrapAdminName(),
-                passwordEncoder.encode(password), Set.of(Role.ADMIN)));
+        UserAccount account = new UserAccount(email, properties.bootstrapAdminName(),
+                passwordEncoder.encode(password), Set.of(Role.ADMIN));
+        // Пароль из .env известен всем, кто видел файл: при первом входе его нужно заменить.
+        account.setMustChangePassword(properties.bootstrapAdminMustChangePassword());
+        UserAccount admin = users.save(account);
         log.info("Создан первый администратор {} (userId={})", admin.getEmail(), admin.getId());
     }
 }

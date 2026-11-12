@@ -2,6 +2,7 @@ package ru.mirea.cyberclub.backend.filter;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
@@ -50,6 +51,13 @@ public final class BookingSpecifications {
             }
             if (f.paid() != null) {
                 where.add(cb.equal(root.get("paid"), f.paid()));
+            }
+            if (f.riskLevel() != null) {
+                where.add(cb.equal(root.get("riskLevel"), f.riskLevel()));
+            }
+            if (f.tag() != null && !f.tag().isBlank()) {
+                // Тег — значение параметра запроса (member of), а не часть текста SQL.
+                where.add(cb.isMember(f.tag().trim().toLowerCase(Locale.ROOT), root.<Collection<String>>get("tags")));
             }
             BookingFilter.ArchiveScope scope = f.archive() == null ? BookingFilter.ArchiveScope.ACTIVE : f.archive();
             if (scope != BookingFilter.ArchiveScope.ALL) {

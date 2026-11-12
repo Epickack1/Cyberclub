@@ -15,6 +15,7 @@ import java.util.Map;
  * @param byStatus           количество по статусам
  * @param byStation          количество по игровым местам
  * @param byStationType      количество по зонам
+ * @param byRiskLevel        количество по риску неоплаты (вычисляемый показатель)
  */
 public record AnalyticsResponse(
         long totalBookings,
@@ -25,5 +26,6 @@ public record AnalyticsResponse(
         BigDecimal completedRevenue,
         Map<String, Long> byStatus,
         Map<String, Long> byStation,
-        Map<String, Long> byStationType) {
+        Map<String, Long> byStationType,
+        Map<String, Long> byRiskLevel) {
 }

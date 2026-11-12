@@ -22,19 +22,25 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import ru.mirea.cyberclub.backend.dto.ApiError;
 import ru.mirea.cyberclub.backend.security.JwtAuthenticationFilter;
+import ru.mirea.cyberclub.backend.security.PasswordChangeRequiredFilter;
 
 /**
  * Правила доступа к API. Сервер без состояния: каждый запрос несёт свой JWT в заголовке
  * {@code Authorization: Bearer ...}, поэтому cookie-сессии и CSRF-защита не нужны.
  *
  * <pre>
- * открыто всем          — вход/обновление/выход, Swagger UI, /actuator/health
+ * открыто всем          — вход/обновление/выход, регистрация клиента, Swagger UI, /actuator/health
  * любой вошедший        — /api/auth/me, смена своего пароля
- * только CLIENT         — личный кабинет /api/me/** (своя карточка и свои брони)
+ * только CLIENT         — личный кабинет /api/me/** (карточка, свои брони, бронирование, отмена)
  * любой сотрудник       — все остальные GET /api/** (клиент чужие данные не видит)
  * OPERATOR или ADMIN    — изменение клиентов и броней
- * только ADMIN          — пользователи (/api/admin/**), справочник мест, окончательное удаление брони
+ * только ADMIN          — пользователи и журнал аудита (/api/admin/**), справочник мест,
+ *                         окончательное удаление брони
  * </pre>
+ *
+ * <p>Временный пароль: до его смены доступны только /api/auth/me, /password, /refresh, /logout
+ * (PasswordChangeRequiredFilter). Веб-интерфейс (/, /app.js, /styles.css) открыт: данные он
+ * получает только через API с токеном.</p>
  */
 @Configuration
 public class SecurityConfig {
@@ -54,7 +60,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/auth/logout").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/auth/logout", "/api/auth/register").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                         .requestMatchers("/error").permitAll()
@@ -73,7 +79,8 @@ public class SecurityConfig {
                                 "Требуется вход: POST /api/auth/login, затем заголовок Authorization: Bearer <accessToken>."))
                         .accessDeniedHandler((request, response, e) -> writeError(objectMapper, request, response,
                                 HttpStatus.FORBIDDEN, "ACCESS_DENIED", "Недостаточно прав для этой операции.")))
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(new PasswordChangeRequiredFilter(objectMapper), JwtAuthenticationFilter.class);
         return http.build();
     }
 

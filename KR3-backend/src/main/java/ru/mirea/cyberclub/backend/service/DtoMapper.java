@@ -38,7 +38,8 @@ public class DtoMapper {
         return new BookingResponse(b.getId(), b.getNumber(), c.getId(), c.getNickname(), c.getFullName(),
                 s.getId(), s.getName(), s.getType(), b.getStartTime(), b.getEndTime(),
                 Duration.between(b.getStartTime(), b.getEndTime()).toMinutes(),
-                b.getStatus(), b.getStatus().getTitle(), b.getTotalPrice(), b.isPaid(), b.getComment(),
+                b.getStatus(), b.getStatus().getTitle(), b.getTotalPrice(), b.isPaid(),
+                b.getRiskLevel(), b.getRiskLevel().getTitle(), b.getTags(), b.getComment(),
                 b.isArchived(), b.getArchivedAt(), b.getCreatedAt(), b.getUpdatedAt(), b.getVersion());
     }
 }

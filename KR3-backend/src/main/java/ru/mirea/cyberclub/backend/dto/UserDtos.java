@@ -51,6 +51,28 @@ public final class UserDtos {
             String password) {
     }
 
+    /**
+     * Изменение учётной записи администратором: логин (email), имя, роли и активность.
+     * {@code version} — из последнего ответа сервера (защита от одновременного изменения).
+     */
+    public record UpdateUserRequest(
+            @Schema(example = "operator@cyberclub.local")
+            @NotBlank(message = "Укажите email") @Email(message = "Некорректный email") @Size(max = 100)
+            String email,
+            @NotBlank(message = "Укажите имя") @Size(min = 2, max = 100, message = "Имя: от 2 до 100 символов")
+            String displayName,
+            @NotEmpty(message = "Выберите хотя бы одну роль")
+            Set<@NotNull Role> roles,
+            @NotNull(message = "Укажите enabled")
+            Boolean enabled,
+            @NotNull(message = "Укажите version")
+            Long version) {
+    }
+
+    /** Временный пароль после сброса: показывается один раз, при первом входе его нужно сменить. */
+    public record TemporaryPasswordResponse(UserResponse user, String temporaryPassword) {
+    }
+
     public record UserResponse(
             UUID id,
             String email,
@@ -62,6 +84,9 @@ public final class UserDtos {
             boolean locked,
             Instant lockedUntil,
             Instant lastLoginAt,
-            Instant createdAt) {
+            Instant createdAt,
+            @Schema(description = "Пароль временный: до смены доступны только /api/auth/me, /password, /refresh, /logout")
+            boolean mustChangePassword,
+            long version) {
     }
 }

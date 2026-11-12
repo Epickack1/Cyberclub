@@ -22,10 +22,12 @@ public class StationService {
 
     private final StationRepository stations;
     private final DtoMapper mapper;
+    private final AuditService audit;
 
-    public StationService(StationRepository stations, DtoMapper mapper) {
+    public StationService(StationRepository stations, DtoMapper mapper, AuditService audit) {
         this.stations = stations;
         this.mapper = mapper;
+        this.audit = audit;
     }
 
     @Transactional(readOnly = true)
@@ -42,8 +44,11 @@ public class StationService {
     @Transactional
     public StationResponse create(StationRequest request) {
         checkNameFree(request.name(), NO_ID);
-        Station station = new Station(request.name().trim(), request.type(), request.hourlyRate(), blankToNull(request.specs()));
-        return mapper.toResponse(stations.save(station));
+        Station station = stations.save(new Station(request.name().trim(), request.type(), request.hourlyRate(),
+                blankToNull(request.specs())));
+        audit.record("STATION_CREATED", AuditService.STATION, station.getId(), "Добавлено место " + station.getName()
+                + " (" + station.getType().getTitle() + ", " + station.getHourlyRate().toPlainString() + " руб./ч)");
+        return mapper.toResponse(station);
     }
 
     @Transactional
@@ -55,7 +60,10 @@ public class StationService {
         station.setType(request.type());
         station.setHourlyRate(request.hourlyRate());
         station.setSpecs(blankToNull(request.specs()));
-        return mapper.toResponse(stations.saveAndFlush(station));
+        Station saved = stations.saveAndFlush(station);
+        audit.record("STATION_UPDATED", AuditService.STATION, id, "Изменено место " + saved.getName()
+                + " (" + saved.getType().getTitle() + ", " + saved.getHourlyRate().toPlainString() + " руб./ч)");
+        return mapper.toResponse(saved);
     }
 
     /** Включение и отключение места без удаления. */
@@ -63,7 +71,10 @@ public class StationService {
     public StationResponse setActive(Long id, boolean active) {
         Station station = require(id);
         station.setActive(active);
-        return mapper.toResponse(stations.saveAndFlush(station));
+        Station saved = stations.saveAndFlush(station);
+        audit.record(active ? "STATION_ENABLED" : "STATION_DISABLED", AuditService.STATION, id,
+                "Место " + saved.getName() + (active ? " снова доступно" : " отключено (обслуживание)"));
+        return mapper.toResponse(saved);
     }
 
     Station require(Long id) {

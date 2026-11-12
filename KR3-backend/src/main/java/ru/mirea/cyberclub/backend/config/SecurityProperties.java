@@ -14,6 +14,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param bootstrapAdminEmail    email первого администратора
  * @param bootstrapAdminName     имя первого администратора
  * @param bootstrapAdminPassword пароль первого администратора (только из переменной окружения)
+ * @param bootstrapAdminMustChangePassword пароль первого администратора временный (по умолчанию да)
  */
 @ConfigurationProperties(prefix = "app.security")
 public record SecurityProperties(
@@ -25,7 +26,8 @@ public record SecurityProperties(
         int lockMinutes,
         String bootstrapAdminEmail,
         String bootstrapAdminName,
-        String bootstrapAdminPassword) {
+        String bootstrapAdminPassword,
+        Boolean bootstrapAdminMustChangePassword) {
 
     public SecurityProperties {
         if (jwtIssuer == null || jwtIssuer.isBlank()) jwtIssuer = "cyberclub";
@@ -34,6 +36,7 @@ public record SecurityProperties(
         if (maxFailedLogins <= 0) maxFailedLogins = 5;
         if (lockMinutes <= 0) lockMinutes = 15;
         if (bootstrapAdminName == null || bootstrapAdminName.isBlank()) bootstrapAdminName = "Администратор клуба";
+        if (bootstrapAdminMustChangePassword == null) bootstrapAdminMustChangePassword = true;
     }
 
     /** Пароль не попадает в toString() и, значит, в журнал. */

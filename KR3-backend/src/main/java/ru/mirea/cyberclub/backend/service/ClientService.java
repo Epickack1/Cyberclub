@@ -29,12 +29,15 @@ public class ClientService {
     private final ClientRepository clients;
     private final BookingRepository bookings;
     private final DtoMapper mapper;
+    private final AuditService audit;
     private final Clock clock;
 
-    public ClientService(ClientRepository clients, BookingRepository bookings, DtoMapper mapper, Clock clock) {
+    public ClientService(ClientRepository clients, BookingRepository bookings, DtoMapper mapper, AuditService audit,
+                         Clock clock) {
         this.clients = clients;
         this.bookings = bookings;
         this.mapper = mapper;
+        this.audit = audit;
         this.clock = clock;
     }
 
@@ -56,7 +59,10 @@ public class ClientService {
         checkRules(request, NO_ID);
         Client client = new Client(request.nickname().trim(), request.fullName().trim(), request.phone().trim(),
                 request.email().trim(), request.birthDate());
-        return mapper.toResponse(clients.save(client));
+        Client saved = clients.save(client);
+        audit.record("CLIENT_CREATED", AuditService.CLIENT, saved.getId(), "Добавлен клиент " + saved.getNickname()
+                + " (" + saved.getFullName() + ")");
+        return mapper.toResponse(saved);
     }
 
     @Transactional
@@ -69,7 +75,9 @@ public class ClientService {
         client.setPhone(request.phone().trim());
         client.setEmail(request.email().trim());
         client.setBirthDate(request.birthDate());
-        return mapper.toResponse(clients.saveAndFlush(client));
+        Client saved = clients.saveAndFlush(client);
+        audit.record("CLIENT_UPDATED", AuditService.CLIENT, id, "Изменён клиент " + saved.getNickname());
+        return mapper.toResponse(saved);
     }
 
     /** Клиента с бронированиями удалить нельзя: история нужна для отчётности. */
@@ -81,6 +89,8 @@ public class ClientService {
                     + ": у него есть бронирования. История сохраняется для отчётности.");
         }
         clients.delete(client);
+        audit.record("CLIENT_DELETED", AuditService.CLIENT, id, "Удалён клиент " + client.getNickname()
+                + " (" + client.getFullName() + ")");
     }
 
     Client require(Long id) {

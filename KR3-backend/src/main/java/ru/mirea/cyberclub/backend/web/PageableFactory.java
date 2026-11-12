@@ -28,21 +28,46 @@ public class PageableFactory {
             "created", "createdAt",
             "updated", "updatedAt");
 
+    private static final Map<String, String> USER_FIELDS = Map.of(
+            "email", "email",
+            "name", "displayName",
+            "created", "createdAt",
+            "lastLogin", "lastLoginAt");
+
+    private static final Map<String, String> AUDIT_FIELDS = Map.of(
+            "occurred", "occurredAt",
+            "type", "eventType",
+            "actor", "actorEmail",
+            "entity", "entityType");
+
     public Pageable bookings(int page, int size, String sort) {
+        // Вторичная сортировка по номеру делает порядок стабильным между страницами.
+        return build(page, size, sort, "start,desc", BOOKING_FIELDS, "number");
+    }
+
+    public Pageable users(int page, int size, String sort) {
+        return build(page, size, sort, "email,asc", USER_FIELDS, "id");
+    }
+
+    public Pageable audit(int page, int size, String sort) {
+        return build(page, size, sort, "occurred,desc", AUDIT_FIELDS, "id");
+    }
+
+    private static Pageable build(int page, int size, String sort, String defaultSort, Map<String, String> fields,
+                                  String tieBreaker) {
         if (page < 0) {
             throw new BadRequestException("page", "Номер страницы не может быть отрицательным.");
         }
         if (size < 1 || size > MAX_PAGE_SIZE) {
             throw new BadRequestException("size", "Размер страницы должен быть от 1 до " + MAX_PAGE_SIZE + ".");
         }
-        String[] parts = sort == null || sort.isBlank() ? new String[]{"start", "desc"} : sort.split(",", 2);
-        String field = BOOKING_FIELDS.get(parts[0].trim());
+        String[] parts = (sort == null || sort.isBlank() ? defaultSort : sort).split(",", 2);
+        String field = fields.get(parts[0].trim());
         if (field == null) {
-            throw new BadRequestException("sort", "Сортировка возможна по полям: " + String.join(", ", BOOKING_FIELDS.keySet()) + ".");
+            throw new BadRequestException("sort", "Сортировка возможна по полям: " + String.join(", ", fields.keySet()) + ".");
         }
         Sort.Direction direction = parts.length > 1 && parts[1].trim().equalsIgnoreCase("asc")
                 ? Sort.Direction.ASC : Sort.Direction.DESC;
-        // Вторичная сортировка по номеру делает порядок стабильным между страницами.
-        return PageRequest.of(page, size, Sort.by(direction, field).and(Sort.by(Sort.Direction.ASC, "number")));
+        return PageRequest.of(page, size, Sort.by(direction, field).and(Sort.by(Sort.Direction.ASC, tieBreaker)));
     }
 }

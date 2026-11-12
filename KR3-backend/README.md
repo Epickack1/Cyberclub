@@ -1,128 +1,150 @@
-# CyberClub — backend (КР3)
+# CyberClub — информационная система киберспортивного клуба (КР3)
 
-REST API киберспортивного клуба на Spring Boot. Продолжение КР1/КР2: та же предметная область
-(клиенты, игровые места, бронирования) и те же бизнес-правила, но теперь данные отдаёт сервер,
-которым пользуются JavaFX-клиент (КР2) и Android-приложение (КР4).
+Backend на Spring Boot + веб-интерфейс (HTML/CSS/JS) для бронирования игровых мест.
+Продолжение КР1/КР2: та же предметная область (клиенты, игровые места, бронирования) и те же
+бизнес-правила. Сервером пользуются сайт, JavaFX-клиент (КР2) и Android-приложение (КР4).
 
 ```
-Клиент (JavaFX / Android / Swagger) ──HTTP/JSON──> Controller → Service → Repository (JPA) → PostgreSQL
+Сайт / JavaFX / Android / Swagger ──HTTP/JSON + JWT──> Controller → Service → Repository (JPA) → PostgreSQL
 ```
 
-## Запуск
+## Запуск на новом компьютере
 
-Нужен только Docker Desktop: PostgreSQL и сам backend запускаются в контейнерах.
+Нужен только **Docker Desktop** (Java и PostgreSQL ставить не нужно — всё в контейнерах).
+
+1. Распаковать архив, открыть папку `KR3-backend`.
+2. Дважды щёлкнуть **`start.cmd`**.
+   - при первом запуске создаётся `.env` со случайными паролями;
+   - поднимаются PostgreSQL и backend (первый раз 5–10 минут: Maven скачивает зависимости, нужен интернет);
+   - открывается сайт, в окне выводится email и временный пароль администратора.
+3. Остановить — **`stop.cmd`** (данные в базе сохраняются).
+
+То же вручную:
 
 ```bash
-cd KR3-backend
-copy .env.example .env          # один раз; в .env задать свой POSTGRES_PASSWORD
+copy .env.example .env          # задать POSTGRES_PASSWORD, BOOTSTRAP_ADMIN_PASSWORD, JWT_SECRET_BASE64
 docker compose --env-file .env up -d --wait
+docker compose --env-file .env ps        # у db и backend должно быть healthy
+docker compose --env-file .env logs -f backend
+docker compose --env-file .env down      # без -v, иначе база удалится
 ```
-
-Первый запуск долгий: Maven внутри контейнера скачивает зависимости. Состояние:
-`docker compose --env-file .env ps` — у `db` и `backend` должно быть `healthy`.
-
-Остановка без потери данных: `docker compose --env-file .env down` (без `-v`).
 
 | Что | Адрес |
 |---|---|
+| Сайт | http://localhost:8081/ |
 | Swagger UI | http://localhost:8081/swagger-ui.html |
-| REST API | http://localhost:8081/api |
 | OpenAPI JSON | http://localhost:8081/v3/api-docs |
 | Health | http://localhost:8081/actuator/health |
-| PostgreSQL | `jdbc:postgresql://localhost:55433/cyberclub`, пользователь `cyberclub_app` |
+| PostgreSQL | `localhost:55433`, база `cyberclub`, пользователь `cyberclub_app` (пароль в `.env`) |
 
-Порты 8081 и 55433 выбраны, чтобы не мешать примеру Student Hub (8080 и 55432).
-Их можно поменять в `.env`.
+Порты меняются в `.env` (`APP_PORT`, `POSTGRES_PORT`). Файл `.env` с паролями в git и в архив не кладётся.
 
-## Авторизация
+Тесты (нужен JDK 21): `mvnw.cmd test` — 31 тест на H2, Docker не нужен.
 
-Весь `/api/**` закрыт: без входа сервер отвечает 401. Swagger UI и `/actuator/health` открыты.
-
-**Первый администратор** создаётся при запуске, пока в базе нет пользователей: в `.env` задать
-`BOOTSTRAP_ADMIN_EMAIL` и `BOOTSTRAP_ADMIN_PASSWORD` (от 8 символов, буквы и цифры, без имени из email).
-Ключ подписи токенов — `JWT_SECRET_BASE64` (команда для генерации — в `.env.example`).
-
-**Вход в Swagger UI:**
-1. «Авторизация» → `POST /api/auth/login` → Try it out → email и пароль → Execute.
-2. Скопировать `accessToken` из ответа.
-3. Кнопка **Authorize** вверху справа → вставить токен (без слова `Bearer`) → Authorize → Close.
-   Теперь все запросы из Swagger идут от имени этого пользователя (замки у методов закрыты).
-
-**Регистрация пользователей** — администратор, раздел «Пользователи (администратор)»:
-`POST /api/admin/users` с телом `{"email": "...", "displayName": "...", "password": "...", "roles": ["OPERATOR"]}`.
+## Пользователи и роли
 
 | Роль | Что может |
 |---|---|
+| `CLIENT` | регистрируется сам на сайте; «Мои брони»: бронировать место, видеть занятое время, отменять свою бронь |
 | `VIEWER` | смотреть клиентов, места, брони, аналитику |
-| `OPERATOR` | + создавать и менять клиентов и брони (администратор зала) |
-| `ADMIN` | + справочник мест, окончательное удаление брони, пользователи системы |
+| `OPERATOR` | + создавать и менять клиентов и брони, заметки, массовые операции, импорт CSV, подтверждение оплаты |
+| `ADMIN` | + справочник мест, окончательное удаление, пользователи системы, журнал аудита |
+
+- **Первый администратор** создаётся из `.env` (`BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD`),
+  пароль временный — при первом входе нужно задать свой.
+- **Клиент** регистрируется сам («Зарегистрироваться» на странице входа). Его брони всегда
+  неоплаченные, оплату подтверждает сотрудник кнопкой «₽ Подтвердить оплату».
+- Сотрудников заводит администратор («Пользователи»): сервер выдаёт временный пароль,
+  до его смены доступен только `/api/auth/*` (иначе 403 `PASSWORD_CHANGE_REQUIRED`).
+
+В одном браузере можно работать под разными аккаунтами в разных вкладках (Ctrl+T, не «дублировать вкладку»):
+сессия хранится в `sessionStorage` вкладки.
+
+Защита: BCrypt (cost 12); JWT 15 минут + refresh 14 дней с ротацией, в базе только SHA-256 refresh-токена;
+повторное использование старого refresh закрывает все сессии пользователя; 5 неверных паролей подряд —
+блокировка на 15 минут (423); одинаковое сообщение при неверном email и пароле; права перечитываются
+из базы при каждом запросе; нельзя отключить себя или оставить систему без администратора.
+
+## Что реализовано
+
+| Требование | Где |
+|---|---|
+| Основная сущность «Бронирование»: UUID, номер, статус, стоимость, «оплачено», даты, `version`, архив | `domain/Booking`, миграции `V1`, `V5` |
+| CRUD, архив вместо удаления, восстановление, окончательное удаление (ADMIN) | `BookingController`, `BookingService` |
+| Поиск, фильтры, сортировка, серверная пагинация | `filter/BookingSpecifications`, `web/PageableFactory` |
+| Справочник игровых мест | `StationController` |
+| Вычисляемый показатель «риск неоплаты» (Нет/Низкий/Средний/Высокий) | `domain/RiskLevel.of`, пересчёт в `@PrePersist/@PreUpdate` |
+| Теги (до 10, кириллица, фильтр по тегу) | `Booking.tags`, `service/Tags`, таблица `booking_tags` |
+| Заметки к брони (автор, закрепление; править может автор или ADMIN) | `NoteController`, `NoteService` |
+| Массовые операции (архив, статус, теги, оплата) с отчётом по каждой записи | `BulkBookingService` |
+| Экспорт CSV и импорт с предпросмотром (без записи) и применением | `CsvBookingService` |
+| Аналитика (по статусам, местам, риску, выручка) | `AnalyticsService` |
+| Авторизация JWT, роли, администрирование пользователей, временные пароли | `security/*`, `AdminUserController` |
+| Журнал аудита с correlation ID и IP | `AuditService`, `AuditController` |
+| Регистрация клиентов и кабинет «Мои брони» | `RegistrationController`, `ClientSelfController` |
+
+Плюс: Flyway V1–V5 (`ddl-auto: validate`), единый JSON ошибок `ApiError`, Bean Validation,
+оптимистичная блокировка (409), Docker Compose с healthcheck, Swagger с кнопкой Authorize, тесты.
+
+## REST API
 
 | Назначение | Метод и адрес |
 |---|---|
-| Вход: access JWT (15 мин) + refresh-токен (14 дн.) | `POST /api/auth/login` |
-| Новая пара токенов (старый refresh больше не действует) | `POST /api/auth/refresh` |
-| Выход | `POST /api/auth/logout` |
-| Кто я / смена своего пароля | `GET /api/auth/me`, `POST /api/auth/password` |
-| Пользователи: список, карточка, регистрация | `GET /api/admin/users`, `GET /api/admin/users/{id}`, `POST /api/admin/users` |
-| Роли, включение/отключение, сброс пароля, снятие блокировки | `PUT .../{id}/roles`, `POST .../{id}/enabled`, `POST .../{id}/password`, `POST .../{id}/unlock` |
+| Вход / обновление токенов / выход | `POST /api/auth/login`, `/refresh`, `/logout` |
+| Регистрация клиента (сразу вход) | `POST /api/auth/register` |
+| Кто я / смена пароля | `GET /api/auth/me`, `POST /api/auth/password` |
+| Брони: список с фильтрами | `GET /api/bookings` |
+| Карточка / по номеру | `GET /api/bookings/{id}`, `GET /api/bookings/number/{number}` |
+| Создание / изменение (с `version`) / статус | `POST /api/bookings`, `PUT /api/bookings/{id}`, `POST /api/bookings/{id}/status` |
+| Архив / восстановление / окончательное удаление | `DELETE /api/bookings/{id}`, `POST .../{id}/restore`, `DELETE .../{id}/permanent` |
+| Подтверждение оплаты | `POST /api/bookings/{id}/confirm-payment` |
+| Массовые операции | `POST /api/bookings/bulk` |
+| CSV | `GET /api/bookings/export`, `POST /api/bookings/import/preview`, `POST /api/bookings/import/apply` |
+| Заметки | `GET/POST /api/bookings/{id}/notes`, `PUT/DELETE /api/bookings/{id}/notes/{noteId}` |
+| Клиенты | `GET/POST /api/clients`, `GET/PUT/DELETE /api/clients/{id}` |
+| Игровые места | `GET/POST /api/stations`, `GET/PUT /api/stations/{id}`, `POST /api/stations/{id}/active` |
+| Аналитика | `GET /api/analytics/summary` |
+| Кабинет клиента | `GET /api/me/client`, `GET/POST /api/me/bookings`, `POST /api/me/bookings/{id}/cancel`, `GET /api/me/stations`, `GET /api/me/busy` |
+| Пользователи (ADMIN) | `GET/POST /api/admin/users`, `GET/PUT /api/admin/users/{id}`, `PUT .../{id}/roles`, `POST .../{id}/enabled`, `.../reset-password`, `.../password`, `.../unlock` |
+| Журнал аудита (ADMIN) | `GET /api/admin/audit` |
 
-Защита: пароли — BCrypt (cost 12); в базе хранится SHA-256 refresh-токена, а не сам токен;
-повторное использование уже обменянного refresh-токена закрывает все сессии пользователя;
-после 5 неудачных попыток подряд вход блокируется на 15 минут (423); сообщение при неверном email
-и неверном пароле одинаковое; права при каждом запросе перечитываются из базы — отключённый
-пользователь теряет доступ сразу; нельзя отключить себя или оставить систему без администратора.
+Параметры `GET /api/bookings`: `q` (номер `#12`, ник, ФИО, место, комментарий), `stationId`, `stationType`,
+`clientId`, `status`, `paid`, `riskLevel`, `tag`, `archive=ACTIVE|ARCHIVED|ALL`, `from`, `to`,
+`priceOp=EQ|GT|GTE|LT|LTE` + `price`, `page`, `size` (до 100),
+`sort=number|start|price|status|client|station|created|updated,asc|desc`.
 
-## Структура (как требует методичка КР3)
+Коды ответов: 400 — неверные данные или нарушено правило клуба, 401 — нужен вход, 403 — нет прав
+(или нужно сменить временный пароль), 404 — нет записи, 409 — конфликт версии / занятое место /
+повтор уникального поля, 423 — вход заблокирован после перебора паролей.
+
+## Сценарий показа на защите
+
+1. `start.cmd` → `docker compose --env-file .env ps`: оба контейнера `healthy`. Swagger открыт.
+2. Вход администратором → сайт требует сменить временный пароль → сменить.
+3. «Брони»: поиск по нику, фильтры по статусу, тегу и риску, сортировка, страницы.
+4. Карточка брони: изменить, добавить теги, заметку, сменить статус; показать колонку «Риск».
+5. Выделить несколько броней → массовое действие → отчёт (успешные и ошибки по каждой).
+6. Экспорт CSV → поправить строку → импорт: предпросмотр (ничего не записано) → применить.
+7. Архивировать и восстановить бронь; «Аналитика»; «Журнал аудита» — видны все действия.
+8. «Пользователи»: создать оператора → выдан временный пароль → войти им в другой вкладке.
+9. В новой вкладке: «Зарегистрироваться» → клиент бронирует место (оплата «нет»)
+   → администратор нажимает «₽ Подтвердить оплату» → у клиента бронь оплачена, риск «Нет».
+10. Swagger: `POST /api/auth/login` → Authorize → любой запрос; без токена — 401.
+11. `mvnw.cmd test` — все тесты зелёные.
+
+## Структура
 
 | Пакет | Назначение |
 |---|---|
 | `controller` | REST-контроллеры |
 | `service` | бизнес-логика и транзакции; `BookingRules` — правила бронирования |
 | `repository` | Spring Data JPA |
-| `domain` | JPA-сущности и enum |
+| `domain` | JPA-сущности и enum (`RiskLevel` — вычисляемый показатель) |
 | `dto` | входные и выходные модели API (сущности наружу не отдаются) |
 | `filter` | безопасный поиск и фильтры через Criteria API |
 | `error` | единая обработка ошибок, JSON `ApiError` |
-| `config` | OpenAPI (кнопка Authorize), правила доступа `SecurityConfig`, первый администратор, часы приложения, параметры `app.*` |
-| `security` | JWT: выпуск и проверка токенов, фильтр `Authorization: Bearer`, политика паролей |
+| `config` | OpenAPI, правила доступа `SecurityConfig`, первый администратор, параметры `app.*` |
+| `security` | JWT, фильтры `Authorization: Bearer` и обязательной смены пароля, политика паролей |
 | `web` | пагинация с белым списком сортировки, correlation ID |
-| `db/migration` | миграции Flyway: схема и тестовые данные |
-
-## REST API
-
-| Назначение | Метод и адрес |
-|---|---|
-| Список броней: поиск, фильтры, сортировка, страницы | `GET /api/bookings` |
-| Карточка по UUID / по номеру | `GET /api/bookings/{id}`, `GET /api/bookings/number/{number}` |
-| Создание | `POST /api/bookings` |
-| Изменение (с `version`) | `PUT /api/bookings/{id}` |
-| Смена статуса | `POST /api/bookings/{id}/status` |
-| Архив вместо удаления | `DELETE /api/bookings/{id}` |
-| Восстановление | `POST /api/bookings/{id}/restore` |
-| Окончательное удаление | `DELETE /api/bookings/{id}/permanent` |
-| Клиенты | `GET/POST /api/clients`, `GET/PUT/DELETE /api/clients/{id}` |
-| Игровые места (справочник) | `GET/POST /api/stations`, `GET/PUT /api/stations/{id}`, `POST /api/stations/{id}/active` |
-| Аналитика | `GET /api/analytics/summary` |
-
-Параметры `GET /api/bookings`: `q` (номер `#12`, ник, ФИО, место, комментарий), `stationId`, `stationType`,
-`clientId`, `status`, `paid`, `archive=ACTIVE|ARCHIVED|ALL`, `from`, `to` (даты), `priceOp=EQ|GT|GTE|LT|LTE`
-вместе с `price`, `page`, `size` (до 100), `sort=number|start|price|status|client|station|created|updated,asc|desc`.
-
-Коды ответов: 400 — неверные данные или нарушено правило клуба, 401 — нужен вход,
-403 — не хватает прав роли, 404 — записи нет, 409 — конфликт версии, занятое место или повтор
-уникального поля, 423 — вход временно заблокирован после перебора паролей.
-
-## Что уже сделано и что осталось по КР3
-
-Сделано (этап 1): основная сущность с UUID, номером, статусом, числовым показателем (стоимость),
-логическим признаком (оплачено), датами, `version` и архивом; CRUD с архивом и восстановлением;
-поиск, 9 фильтров, сортировка по 8 полям, серверная пагинация; справочник мест с включением
-и отключением; аналитика; Bean Validation; единый JSON ошибок; correlation ID; Flyway; Swagger;
-Docker Compose с healthcheck; тесты (контекст, бизнес-правила, фильтр).
-
-Сделано (этап 2, часть 1): авторизация — JWT, refresh-сессии с ротацией, три роли, BCrypt, блокировка
-перебора паролей, кнопка Authorize в Swagger, первый администратор из `.env`, администрирование
-пользователей; миграция `V3__users_and_auth.sql`; тест `AuthFlowTest` (10 сценариев).
-
-Осталось (этап 2): теги и вычисляемый показатель, заметки к брони, массовые операции,
-импорт/экспорт CSV, журнал аудита; клиенты JavaFX (КР2) и Android (КР4) — вход и передача токена.
+| `resources/static` | веб-интерфейс: `index.html`, `styles.css`, `app.js` |
+| `resources/db/migration` | миграции Flyway V1–V5 |
